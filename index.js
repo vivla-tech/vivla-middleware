@@ -48,7 +48,6 @@ app.use('/api/tickets/:id', createProxyMiddleware({
 }));
 
 
-
 // listar tickets zendesk - ruta general
 app.use('/api/tickets', createProxyMiddleware({
     target: `${ZENDESK_URL}/tickets.json`,
@@ -60,10 +59,6 @@ app.use('/api/tickets', createProxyMiddleware({
         res.status(500).send('Error de conexión');
     }
 }));
-
-app.listen(PORT, () => {
-    console.log(`Servidor en puerto ${PORT}`);
-});
 
 
 // Endpoint para estadísticas de homes
@@ -193,23 +188,12 @@ app.get('/api/homes/stats', async (req, res) => {
     }
 });
 
-const json = {
-    status: '',
-    data: {
-        homes: [
-            {
-                name: '',
-                total_tickets: 0,
-                tickets_open: 0,
-                tickets_closed: 0,
-                tickets_pending: 0,
-                tickets_in_progress: 0,
-                tickets_on_hold: 0,
-                tickets_resolved: 0,
-                last_tickets: [{
-                    //estructura de un ticket de zendesk
-                }]
-            }
-        ]
-    }
+
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT || 3000, () => {
+        console.log(`Servidor en puerto ${PORT || 3000}`);
+    });
 }
+
+export default app;
+
