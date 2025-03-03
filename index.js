@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 import axios from 'axios';
 
 dotenv.config();
@@ -24,42 +23,79 @@ const headers = {
 
 // Ruta principal
 app.get('/', (req, res) => {
-    res.send('Zendesk Middleware OK');
+    res.send('Middleware OK');
 });
 
-// Endpoint para obtener un ticket específico por ID usando el middleware proxy
-// Importante: esta ruta debe definirse ANTES que la ruta general de tickets
-app.use('/api/tickets/:id', createProxyMiddleware({
-    target: ZENDESK_URL,
-    changeOrigin: true,
-    pathRewrite: (path, req) => {
+// Endpoint para obtener un ticket específico por ID
+app.get('/api/tickets/:id', async (req, res) => {
+    try {
         const ticketId = req.params.id;
         console.log(`Obteniendo ticket con ID: ${ticketId}`);
-        return `/tickets/${ticketId}.json`;
-    },
-    headers: headers,
-    onError: (err, req, res) => {
-        console.error(`Error al obtener ticket:`, err);
-        res.status(500).json({
-            error: 'Error al obtener el ticket',
-            message: err.message
+
+        const response = await axios.get(
+            `${ZENDESK_URL}/tickets/${ticketId}.json`,
+            { headers: headers }
+        );
+
+        // Formatear el ticket usando la misma estructura
+        const formattedTicket = homeStatsHelpers.formatTicket(response.data.ticket);
+
+        return res.json({
+            status: 'success',
+            data: formattedTicket
+        });
+    } catch (error) {
+        console.error(`Error al obtener ticket:`, error);
+        return res.status(error.response?.status || 500).json({
+            status: 'error',
+            message: 'Error al obtener el ticket',
+            error: error.message
         });
     }
-}));
+});
 
+// Endpoint para listar tickets
+app.get('/api/tickets', async (req, res) => {
+    try {
+        const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc' } = req.query;
 
-// listar tickets zendesk - ruta general
-app.use('/api/tickets', createProxyMiddleware({
-    target: `${ZENDESK_URL}/tickets.json`,
-    changeOrigin: true,
-    pathRewrite: { '^/api/tickets': '' },
-    headers: headers,
-    onError: (err, req, res) => {
-        console.error('Error:', err);
-        res.status(500).send('Error de conexión');
+        const response = await axios.get(
+            `${ZENDESK_URL}/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`,
+            { headers: headers }
+        );
+
+        // Formatear cada ticket usando la misma estructura
+        const formattedTickets = response.data.tickets.map(ticket =>
+            homeStatsHelpers.formatTicket(ticket)
+        );
+
+        // Construir URLs relativas para la paginación
+        const nextPage = response.data.next_page
+            ? `/api/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
+            : null;
+
+        const previousPage = response.data.previous_page
+            ? `/api/tickets?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
+            : null;
+
+        return res.json({
+            status: 'success',
+            data: {
+                tickets: formattedTickets,
+                count: response.data.count,
+                next_page: nextPage,
+                previous_page: previousPage
+            }
+        });
+    } catch (error) {
+        console.error('Error al obtener tickets:', error);
+        return res.status(error.response?.status || 500).json({
+            status: 'error',
+            message: 'Error al obtener tickets',
+            error: error.message
+        });
     }
-}));
-
+});
 
 // Funciones auxiliares para el procesamiento de estadísticas de homes
 const homeStatsHelpers = {
