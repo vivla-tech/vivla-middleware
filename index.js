@@ -69,13 +69,17 @@ app.get('/api/tickets', async (req, res) => {
             homeStatsHelpers.formatTicket(ticket)
         );
 
-        // Construir URLs relativas para la paginación
+        // Obtener el protocolo y host del request
+        const protocol = req.protocol;
+        const host = req.get('host');
+
+        // Construir URLs completas para la paginación
         const nextPage = response.data.next_page
-            ? `/api/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
+            ? `${protocol}://${host}/api/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
             : null;
 
         const previousPage = response.data.previous_page
-            ? `/api/tickets?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
+            ? `${protocol}://${host}/api/tickets?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
             : null;
 
         return res.json({
