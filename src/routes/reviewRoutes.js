@@ -1,8 +1,8 @@
 import express from 'express';
-import { getAllReviews } from '../controllers/reviewController.js';
+import { getReviews } from '../controllers/reviewController.js';
 
 const router = express.Router();
 
-router.get('/', getAllReviews);
+router.get('/', getReviews);
 
 export default router; 

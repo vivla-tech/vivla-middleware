@@ -1,15 +1,42 @@
-import { getAllReviews as getAllReviewsService } from '../services/reviewService.js';
+import { getAllReviews, getFilteredReviews } from '../services/reviewService.js';
 
-export async function getAllReviews(req, res) {
+export async function getReviews(req, res) {
     try {
-        const result = await getAllReviewsService();
-        return res.json(result);
+        const { type, houseId } = req.query;
+        const filters = {};
+
+        // Validar el tipo de review
+        if (type) {
+            if (!['home', 'stay'].includes(type)) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'El tipo de review debe ser "home" o "stay"'
+                });
+            }
+            filters.type = type;
+        }
+
+        // Validar el ID de la casa
+        if (houseId) {
+            if (!/^\d+$/.test(houseId)) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'El ID de la casa debe ser un número'
+                });
+            }
+            filters.houseId = houseId;
+        }
+
+        const result = Object.keys(filters).length > 0
+            ? await getFilteredReviews(filters)
+            : await getAllReviews();
+
+        res.json(result);
     } catch (error) {
-        console.error('Error al obtener todas las reviews:', error);
-        return res.status(500).json({
+        console.error('Error en el controlador de reviews:', error);
+        res.status(500).json({
             status: 'error',
-            message: 'Error al obtener todas las reviews',
-            error: error.message
+            message: 'Error al obtener las reviews'
         });
     }
 } 

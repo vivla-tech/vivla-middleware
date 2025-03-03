@@ -26,4 +26,42 @@ export async function getAllReviews() {
         console.error('Error al obtener todas las reviews:', error);
         throw error;
     }
+}
+
+export async function getFilteredReviews(filters = {}) {
+    try {
+        const reviewsRef = collection(db, 'nps-booking');
+        let conditions = [];
+
+        // Aplicar filtro por tipo (home/stay)
+        if (filters.type) {
+            conditions.push(where('round', '==', filters.type));
+        } else {
+            conditions.push(where('round', 'in', ['home', 'stay']));
+        }
+
+        // Aplicar filtro por casa
+        if (filters.houseId) {
+            conditions.push(where('hid', '==', filters.houseId));
+        }
+
+        const q = query(reviewsRef, ...conditions);
+        const querySnapshot = await getDocs(q);
+
+        const reviewsData = [];
+        querySnapshot.forEach((doc) => {
+            reviewsData.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        return {
+            status: 'success',
+            data: reviewsData
+        };
+    } catch (error) {
+        console.error('Error al obtener las reviews filtradas:', error);
+        throw error;
+    }
 } 
