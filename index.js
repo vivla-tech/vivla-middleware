@@ -66,20 +66,82 @@ const homeStatsHelpers = {
     // Constantes
     HOME_FIELD_ID: 17925940459804,
 
-    // Obtener tickets de Zendesk
-    async fetchTickets() {
+    // Obtener lista única de casas usando la API de búsqueda de Zendesk
+    async getUniqueHomes() {
         try {
-            const response = await axios.get(`${ZENDESK_URL}/tickets.json?include=users`, {
-                headers: headers
-            });
+            console.log('Obteniendo lista única de casas...');
 
-            if (!response.data || !response.data.tickets) {
-                throw new Error('No se encontraron datos de tickets');
+            // Usamos la API de búsqueda para obtener valores únicos del campo
+            const response = await axios.get(
+                `${ZENDESK_URL}/search.json?query=custom_field_${this.HOME_FIELD_ID}:*&include=users&sort_by=created_at&sort_order=desc`,
+                {
+                    headers: headers
+                }
+            );
+
+            if (!response.data || !response.data.results) {
+                throw new Error('No se encontraron datos de casas');
             }
 
-            return response.data.tickets;
+            // Extraer valores únicos del campo home
+            const uniqueHomes = [...new Set(
+                response.data.results
+                    .map(ticket => {
+                        const homeField = ticket.custom_fields?.find(
+                            field => field.id === this.HOME_FIELD_ID
+                        );
+                        return homeField?.value;
+                    })
+                    .filter(value => value && value !== 'unknown') // Filtramos valores nulos y 'unknown'
+            )];
+
+            console.log(`Se encontraron ${uniqueHomes.length} casas únicas:`, uniqueHomes);
+            return uniqueHomes;
         } catch (error) {
-            console.error('Error al obtener tickets de Zendesk:', error.message);
+            console.error('Error al obtener lista de casas:', error.message);
+            throw error;
+        }
+    },
+
+    // Obtener tickets de una casa específica con paginación
+    async getTicketsForHome(homeName) {
+        try {
+            let allTickets = [];
+            let currentPage = 1;
+            let hasMorePages = true;
+
+            console.log(`Obteniendo tickets para la casa: ${homeName}`);
+
+            while (hasMorePages) {
+                console.log(`Página ${currentPage} para ${homeName}...`);
+
+                // Usamos la API de búsqueda con filtro específico por casa
+                const response = await axios.get(
+                    `${ZENDESK_URL}/search.json?query=custom_field_${this.HOME_FIELD_ID}:${encodeURIComponent(homeName)}&page=${currentPage}&per_page=100&include=users&sort_by=created_at&sort_order=desc`,
+                    {
+                        headers: headers
+                    }
+                );
+
+                if (!response.data || !response.data.results) {
+                    throw new Error(`No se encontraron datos de tickets para la casa ${homeName}`);
+                }
+
+                allTickets = allTickets.concat(response.data.results);
+                hasMorePages = !!response.data.next_page;
+                currentPage++;
+
+                console.log(`Página ${currentPage - 1} procesada para ${homeName}. Tickets acumulados: ${allTickets.length}`);
+
+                // Pequeño delay para no sobrecargar la API
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            console.log(`Total de tickets obtenidos para ${homeName}: ${allTickets.length}`);
+            return allTickets;
+
+        } catch (error) {
+            console.error(`Error al obtener tickets para la casa ${homeName}:`, error.message);
             throw error;
         }
     },
@@ -187,16 +249,31 @@ const homeStatsHelpers = {
 // Endpoint para estadísticas de homes
 app.get('/api/homes/stats', async (req, res) => {
     try {
-        // 1. Obtener tickets de Zendesk
-        const tickets = await homeStatsHelpers.fetchTickets();
+        // 1. Obtener lista única de casas
+        const uniqueHomes = await homeStatsHelpers.getUniqueHomes();
 
         // 2. Estructura para almacenar estadísticas
         const homeStats = {};
 
-        // 3. Procesar cada ticket
-        tickets.forEach(ticket => {
-            homeStatsHelpers.processTicket(ticket, homeStats);
-        });
+        // 3. Procesar cada casa
+        for (const homeName of uniqueHomes) {
+            try {
+                // Obtener tickets de esta casa
+                const tickets = await homeStatsHelpers.getTicketsForHome(homeName);
+
+                // Inicializar estadísticas para esta casa
+                homeStats[homeName] = homeStatsHelpers.initializeHomeStats(homeName);
+
+                // Procesar tickets de esta casa
+                tickets.forEach(ticket => {
+                    homeStatsHelpers.processTicket(ticket, homeStats);
+                });
+            } catch (error) {
+                console.error(`Error procesando casa ${homeName}:`, error);
+                // Continuar con la siguiente casa incluso si hay error
+                continue;
+            }
+        }
 
         // 4. Procesar los tickets recientes para cada home
         homeStatsHelpers.processRecentTickets(homeStats);
