@@ -1,8 +1,9 @@
-import { getAllReviews, getFilteredReviews } from '../services/reviewService.js';
+import { getAllReviews, getFilteredReviews } from '../services/firebase/reviewService.js';
+import { getHouseIdByName } from '../services/firebase/houseService.js';
 
 export async function getReviews(req, res) {
     try {
-        const { type, houseId } = req.query;
+        const { type, houseName } = req.query;
         const filters = {};
 
         // Validar el tipo de review
@@ -16,15 +17,17 @@ export async function getReviews(req, res) {
             filters.type = type;
         }
 
-        // Validar el ID de la casa
-        if (houseId) {
-            if (!/^\d+$/.test(houseId)) {
+        // Validar y obtener el ID de la casa por nombre
+        if (houseName) {
+            try {
+                const houseId = await getHouseIdByName(houseName);
+                filters.houseId = houseId;
+            } catch (error) {
                 return res.status(400).json({
                     status: 'error',
-                    message: 'El ID de la casa debe ser un número'
+                    message: error.message
                 });
             }
-            filters.houseId = houseId;
         }
 
         const result = Object.keys(filters).length > 0

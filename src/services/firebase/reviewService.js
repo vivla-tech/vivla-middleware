@@ -1,5 +1,6 @@
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../config/firebase.js';
+import { db } from '../../config/firebase.js';
+import { getHouseNameById } from './houseService.js';
 
 export async function getAllReviews() {
     try {
@@ -11,12 +12,15 @@ export async function getAllReviews() {
         const querySnapshot = await getDocs(q);
 
         const reviewsData = [];
-        querySnapshot.forEach((doc) => {
+        for (const doc of querySnapshot.docs) {
+            const data = doc.data();
+            const homeName = await getHouseNameById(data.hid);
             reviewsData.push({
                 id: doc.id,
-                ...doc.data()
+                ...data,
+                homeName
             });
-        });
+        }
 
         return {
             status: 'success',
@@ -49,12 +53,15 @@ export async function getFilteredReviews(filters = {}) {
         const querySnapshot = await getDocs(q);
 
         const reviewsData = [];
-        querySnapshot.forEach((doc) => {
+        for (const doc of querySnapshot.docs) {
+            const data = doc.data();
+            const houseName = await getHouseNameById(data.hid);
             reviewsData.push({
                 id: doc.id,
-                ...doc.data()
+                ...data,
+                houseName
             });
-        });
+        }
 
         return {
             status: 'success',
