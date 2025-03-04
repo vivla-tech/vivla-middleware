@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import ticketRoutes from './routes/ticketRoutes.js';
-import homeRoutes from './routes/homeRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 
 dotenv.config();
@@ -22,9 +21,8 @@ app.get('/', (req, res) => {
 });
 
 // Rutas
-app.use('/api/tickets', ticketRoutes);
-app.use('/api/homes', homeRoutes);
-app.use('/api/reviews', reviewRoutes);
+app.use('/v1/tickets', ticketRoutes);
+app.use('/v1/reviews', reviewRoutes);
 
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT || 3000, () => {

@@ -1,4 +1,4 @@
-import { getTicketById as getTicketByIdService, getTickets as getTicketsService } from '../services/ticketService.js';
+import { getTicketById as getTicketByIdService, getTickets as getTicketsService, getTicketsStats as getTicketsStatsService } from '../services/ticketService.js';
 
 export async function getTicketById(req, res) {
     try {
@@ -42,6 +42,20 @@ export async function getTickets(req, res) {
         return res.status(error.response?.status || 500).json({
             status: 'error',
             message: 'Error al obtener tickets',
+            error: error.message
+        });
+    }
+}
+
+export async function getTicketsStats(req, res) {
+    try {
+        const result = await getTicketsStatsService();
+        return res.json(result);
+    } catch (error) {
+        console.error('Error al obtener estadísticas de homes:', error);
+        return res.status(error.response?.status || 500).json({
+            status: 'error',
+            message: 'Error al obtener estadísticas',
             error: error.message
         });
     }
