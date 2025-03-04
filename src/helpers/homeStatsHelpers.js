@@ -4,6 +4,9 @@ import { zendeskConfig } from '../config/zendesk.js';
 // Constante compartida
 const HOME_FIELD_ID = 17925940459804;
 
+// Cache para IDs de usuario a nombres
+let userCache = {};
+
 export const homeStatsHelpers = {
     // Obtener lista única de casas usando la API de búsqueda de Zendesk
     async getUniqueHomes() {
@@ -164,9 +167,86 @@ export const homeStatsHelpers = {
             created_at: ticket.created_at,
             updated_at: ticket.updated_at,
             priority: ticket.priority,
-            requester_id: ticket.requester_id,
-            assignee_id: ticket.assignee_id,
+            requester_name: this.getUserName(ticket, 'requester'),
+            assignee_name: this.getUserName(ticket, 'assignee'),
             description: ticket.description
         };
+    },
+
+    // Obtener el nombre de un usuario (requester o assignee) desde el ticket o del cache
+    getUserName(ticket, userType = 'requester') {
+        const userCache = global.userCache || (global.userCache = {});
+        const userId = userType === 'requester' ? ticket.requester_id : ticket.assignee_id;
+
+        // Si no hay userId, devolver valor por defecto
+        if (!userId) return userType === 'requester' ? 'Sin solicitante' : 'Sin asignado';
+
+        // Si el ticket ya tiene la información del usuario
+        if (ticket.via && ticket.via.source && ticket.via.source.from) {
+            const userName = ticket.via.source.from.name;
+            if (userName) {
+                userCache[userId] = userName;
+                return userName;
+            }
+        }
+
+        // Verificar si tenemos el nombre en el cache
+        if (userCache[userId]) {
+            return userCache[userId];
+        }
+
+        // Si el ticket tiene la propiedad users (incluida por la API)
+        if (ticket.users) {
+            const user = ticket.users.find(user => user.id === userId);
+            if (user && user.name) {
+                userCache[userId] = user.name;
+                return user.name;
+            }
+        }
+
+        // Si no tenemos el nombre aún, devolvemos el ID como cadena provisional
+        return `ID: ${userId}`;
+    },
+
+    // Cargar nombres de usuarios para una lista de tickets
+    async loadUserNames(tickets) {
+        try {
+            const userCache = global.userCache || (global.userCache = {});
+            const requesterIds = [];
+            const assigneeIds = [];
+
+            // Recopilar IDs de usuarios que no están en el cache
+            tickets.forEach(ticket => {
+                if (ticket.requester_id && !userCache[ticket.requester_id]) {
+                    requesterIds.push(ticket.requester_id);
+                }
+                if (ticket.assignee_id && !userCache[ticket.assignee_id]) {
+                    assigneeIds.push(ticket.assignee_id);
+                }
+            });
+
+            // Combinar ambos arrays y eliminar duplicados
+            const userIds = [...new Set([...requesterIds, ...assigneeIds])];
+
+            // Si no hay usuarios para cargar, salir
+            if (userIds.length === 0) return;
+
+            console.log(`Cargando nombres para ${userIds.length} usuarios...`);
+
+            // Hacer consulta a Zendesk para obtener usuarios
+            const response = await axios.get(
+                `${zendeskConfig.url}/users/show_many.json?ids=${userIds.join(',')}`,
+                { headers: zendeskConfig.headers }
+            );
+
+            // Guardar nombres en caché
+            if (response.data && response.data.users) {
+                response.data.users.forEach(user => {
+                    userCache[user.id] = user.name;
+                });
+            }
+        } catch (error) {
+            console.error('Error al cargar nombres de usuarios:', error);
+        }
     }
 }; 

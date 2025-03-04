@@ -70,13 +70,13 @@ const swaggerOptions = {
                             enum: ['low', 'normal', 'high', 'urgent'],
                             description: 'Prioridad del ticket'
                         },
-                        requester_id: {
-                            type: 'integer',
-                            description: 'ID del solicitante'
+                        requester_name: {
+                            type: 'string',
+                            description: 'Nombre del solicitante'
                         },
-                        assignee_id: {
-                            type: 'integer',
-                            description: 'ID del asignado'
+                        assignee_name: {
+                            type: 'string',
+                            description: 'Nombre del asignado'
                         }
                     }
                 },

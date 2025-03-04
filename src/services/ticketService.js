@@ -7,7 +7,7 @@ export async function getTicketById(ticketId) {
         console.log(`Obteniendo ticket con ID: ${ticketId}`);
 
         const response = await axios.get(
-            `${zendeskConfig.url}/tickets/${ticketId}.json`,
+            `${zendeskConfig.url}/tickets/${ticketId}.json?include=users`,
             { headers: zendeskConfig.headers }
         );
 
@@ -24,9 +24,12 @@ export async function getTicketById(ticketId) {
 export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
     try {
         const response = await axios.get(
-            `${zendeskConfig.url}/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`,
+            `${zendeskConfig.url}/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`,
             { headers: zendeskConfig.headers }
         );
+
+        // Cargar nombres de usuarios
+        await homeStatsHelpers.loadUserNames(response.data.tickets);
 
         const formattedTickets = response.data.tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
