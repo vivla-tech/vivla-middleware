@@ -1,60 +1,81 @@
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firebase.js';
 import { getHouseNameById } from './houseService.js';
+import { getUserName } from './userService.js';
 
-// Función auxiliar para obtener el nombre del usuario
-async function getUserName(uid) {
-    try {
-        const userDoc = await getDoc(doc(db, 'users', uid));
-        if (userDoc.exists()) {
-            return userDoc.data().display_name || null;
-        }
-        return null;
-    } catch (error) {
-        console.error(`Error al obtener nombre de usuario para uid ${uid}:`, error);
-        return null;
-    }
+// Función auxiliar para procesar los resultados
+async function processReviewResults(querySnapshot) {
+    // Obtener todos los IDs únicos de usuarios y casas
+    const userIds = new Set();
+    const houseIds = new Set();
+    querySnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        userIds.add(data.uid);
+        houseIds.add(data.hid);
+    });
+
+    // Obtener todos los nombres de usuarios y casas en paralelo
+    const [userNames, houseNames] = await Promise.all([
+        Promise.all([...userIds].map(uid => getUserName(uid))),
+        Promise.all([...houseIds].map(hid => getHouseNameById(hid)))
+    ]);
+
+    // Crear mapas para acceso rápido
+    const userMap = new Map([...userIds].map((uid, index) => [uid, userNames[index]]));
+    const houseMap = new Map([...houseIds].map((hid, index) => [hid, houseNames[index]]));
+
+    const reviewsData = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            home: houseMap.get(data.hid) || null,
+            user: userMap.get(data.uid) || null,
+            ...data,
+        };
+    });
+
+    return {
+        status: 'success',
+        data: reviewsData,
+        hasMore: querySnapshot.docs.length === 50
+    };
 }
 
 export async function getAllReviews() {
     try {
         const reviewsRef = collection(db, 'nps-booking');
-        const q = query(
-            reviewsRef,
-            where('round', 'in', ['home', 'stay'])
-        );
-        const querySnapshot = await getDocs(q);
 
-        const reviewsData = [];
-        for (const doc of querySnapshot.docs) {
-            const data = doc.data();
-            try {
-                const [homeName, userName] = await Promise.all([
-                    getHouseNameById(data.hid),
-                    getUserName(data.uid)
-                ]);
+        // Primero intentamos con la consulta optimizada
+        try {
+            const q = query(
+                reviewsRef,
+                where('round', 'in', ['home', 'stay']),
+                orderBy('created_at', 'desc'),
+                limit(50)
+            );
+            const querySnapshot = await getDocs(q);
+            return await processReviewResults(querySnapshot);
+        } catch (indexError) {
+            // Si falla por falta de índice, hacemos una consulta más simple
+            console.warn('Índice no disponible, usando consulta alternativa:', indexError);
 
-                reviewsData.push({
-                    id: doc.id,
-                    home: homeName || null,
-                    user: userName || null,
-                    ...data,
-                });
-            } catch (error) {
-                console.error(`Error al obtener datos para review ${doc.id}:`, error);
-                reviewsData.push({
-                    id: doc.id,
-                    ...data,
-                    home: null,
-                    user: null
-                });
-            }
+            const q = query(
+                reviewsRef,
+                where('round', 'in', ['home', 'stay']),
+                limit(50)
+            );
+            const querySnapshot = await getDocs(q);
+
+            // Ordenamos los resultados en memoria
+            const sortedDocs = querySnapshot.docs.sort((a, b) => {
+                return b.data().created_at?.toMillis() - a.data().created_at?.toMillis();
+            });
+
+            return await processReviewResults({
+                ...querySnapshot,
+                docs: sortedDocs
+            });
         }
-
-        return {
-            status: 'success',
-            data: reviewsData
-        };
     } catch (error) {
         console.error('Error al obtener todas las reviews:', error);
         throw error;
@@ -78,39 +99,32 @@ export async function getFilteredReviews(filters = {}) {
             conditions.push(where('hid', '==', filters.houseId));
         }
 
-        const q = query(reviewsRef, ...conditions);
-        const querySnapshot = await getDocs(q);
+        // Agregar límite
+        conditions.push(limit(50));
 
-        const reviewsData = [];
-        for (const doc of querySnapshot.docs) {
-            const data = doc.data();
-            try {
-                const [homeName, userName] = await Promise.all([
-                    getHouseNameById(data.hid),
-                    getUserName(data.uid)
-                ]);
+        // Intentar primero con la consulta optimizada
+        try {
+            conditions.push(orderBy('created_at', 'desc'));
+            const q = query(reviewsRef, ...conditions);
+            const querySnapshot = await getDocs(q);
+            return await processReviewResults(querySnapshot);
+        } catch (indexError) {
+            // Si falla por falta de índice, hacemos una consulta más simple
+            console.warn('Índice no disponible, usando consulta alternativa:', indexError);
 
-                reviewsData.push({
-                    id: doc.id,
-                    ...data,
-                    home: homeName || null,
-                    user: userName || null
-                });
-            } catch (error) {
-                console.error(`Error al obtener datos para review ${doc.id}:`, error);
-                reviewsData.push({
-                    id: doc.id,
-                    ...data,
-                    home: null,
-                    user: null
-                });
-            }
+            const q = query(reviewsRef, ...conditions.filter(c => c.type !== 'orderBy'));
+            const querySnapshot = await getDocs(q);
+
+            // Ordenamos los resultados en memoria
+            const sortedDocs = querySnapshot.docs.sort((a, b) => {
+                return b.data().created_at?.toMillis() - a.data().created_at?.toMillis();
+            });
+
+            return await processReviewResults({
+                ...querySnapshot,
+                docs: sortedDocs
+            });
         }
-
-        return {
-            status: 'success',
-            data: reviewsData
-        };
     } catch (error) {
         console.error('Error al obtener las reviews filtradas:', error);
         throw error;
