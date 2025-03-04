@@ -156,6 +156,10 @@ const swaggerOptions = {
                             type: 'string',
                             description: 'Nombre del usuario'
                         },
+                        email: {
+                            type: 'string',
+                            description: 'Email del usuario'
+                        },
                         hid: {
                             type: 'string',
                             description: 'ID de la casa'

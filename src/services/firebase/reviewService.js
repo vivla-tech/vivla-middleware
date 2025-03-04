@@ -1,7 +1,7 @@
 import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
 import { db } from '../../config/firebase.js';
 import { getHouseNameById } from './houseService.js';
-import { getUserName } from './userService.js';
+import { getUserName, getUserEmail } from './userService.js';
 
 // Función auxiliar para procesar los resultados
 async function processReviewResults(querySnapshot) {
@@ -14,14 +14,16 @@ async function processReviewResults(querySnapshot) {
         houseIds.add(data.hid);
     });
 
-    // Obtener todos los nombres de usuarios y casas en paralelo
-    const [userNames, houseNames] = await Promise.all([
+    // Obtener todos los nombres de usuarios, emails y casas en paralelo
+    const [userNames, userEmails, houseNames] = await Promise.all([
         Promise.all([...userIds].map(uid => getUserName(uid))),
+        Promise.all([...userIds].map(uid => getUserEmail(uid))),
         Promise.all([...houseIds].map(hid => getHouseNameById(hid)))
     ]);
 
     // Crear mapas para acceso rápido
     const userMap = new Map([...userIds].map((uid, index) => [uid, userNames[index]]));
+    const emailMap = new Map([...userIds].map((uid, index) => [uid, userEmails[index]]));
     const houseMap = new Map([...houseIds].map((hid, index) => [hid, houseNames[index]]));
 
     const reviewsData = querySnapshot.docs.map(doc => {
@@ -30,6 +32,7 @@ async function processReviewResults(querySnapshot) {
             id: doc.id,
             home: houseMap.get(data.hid) || null,
             user: userMap.get(data.uid) || null,
+            email: emailMap.get(data.uid) || null,
             ...data,
         };
     });
