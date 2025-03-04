@@ -1,6 +1,20 @@
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase.js';
 import { getHouseNameById } from './houseService.js';
+
+// Función auxiliar para obtener el nombre del usuario
+async function getUserName(uid) {
+    try {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (userDoc.exists()) {
+            return userDoc.data().display_name || null;
+        }
+        return null;
+    } catch (error) {
+        console.error(`Error al obtener nombre de usuario para uid ${uid}:`, error);
+        return null;
+    }
+}
 
 export async function getAllReviews() {
     try {
@@ -15,18 +29,24 @@ export async function getAllReviews() {
         for (const doc of querySnapshot.docs) {
             const data = doc.data();
             try {
-                const homeName = await getHouseNameById(data.hid);
+                const [homeName, userName] = await Promise.all([
+                    getHouseNameById(data.hid),
+                    getUserName(data.uid)
+                ]);
+
                 reviewsData.push({
                     id: doc.id,
+                    home: homeName || null,
+                    user: userName || null,
                     ...data,
-                    homeName: homeName || null
                 });
             } catch (error) {
-                console.error(`Error al obtener nombre de casa para review ${doc.id}:`, error);
+                console.error(`Error al obtener datos para review ${doc.id}:`, error);
                 reviewsData.push({
                     id: doc.id,
                     ...data,
-                    homeName: null
+                    home: null,
+                    user: null
                 });
             }
         }
@@ -65,18 +85,24 @@ export async function getFilteredReviews(filters = {}) {
         for (const doc of querySnapshot.docs) {
             const data = doc.data();
             try {
-                const houseName = await getHouseNameById(data.hid);
+                const [homeName, userName] = await Promise.all([
+                    getHouseNameById(data.hid),
+                    getUserName(data.uid)
+                ]);
+
                 reviewsData.push({
                     id: doc.id,
                     ...data,
-                    houseName: houseName || null
+                    home: homeName || null,
+                    user: userName || null
                 });
             } catch (error) {
-                console.error(`Error al obtener nombre de casa para review ${doc.id}:`, error);
+                console.error(`Error al obtener datos para review ${doc.id}:`, error);
                 reviewsData.push({
                     id: doc.id,
                     ...data,
-                    houseName: null
+                    home: null,
+                    user: null
                 });
             }
         }
