@@ -64,12 +64,21 @@ export async function getFilteredReviews(filters = {}) {
         const reviewsData = [];
         for (const doc of querySnapshot.docs) {
             const data = doc.data();
-            const houseName = await getHouseNameById(data.hid);
-            reviewsData.push({
-                id: doc.id,
-                ...data,
-                houseName
-            });
+            try {
+                const houseName = await getHouseNameById(data.hid);
+                reviewsData.push({
+                    id: doc.id,
+                    ...data,
+                    houseName: houseName || null
+                });
+            } catch (error) {
+                console.error(`Error al obtener nombre de casa para review ${doc.id}:`, error);
+                reviewsData.push({
+                    id: doc.id,
+                    ...data,
+                    houseName: null
+                });
+            }
         }
 
         return {
