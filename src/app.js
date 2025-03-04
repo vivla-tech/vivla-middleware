@@ -23,7 +23,11 @@ app.use(cors());
 
 // Configuración de Swagger
 const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+    explorer: true,
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: "Vivla API Documentation"
+}));
 
 // Ruta principal
 app.get('/', (req, res) => {
@@ -33,6 +37,15 @@ app.get('/', (req, res) => {
 // Rutas
 app.use('/v1/tickets', ticketRoutes);
 app.use('/v1/reviews', reviewRoutes);
+
+// Manejo de errores para Vercel
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+        status: 'error',
+        message: 'Error interno del servidor'
+    });
+});
 
 if (NODE_ENV !== 'production') {
     app.listen(PORT || 3000, () => {
