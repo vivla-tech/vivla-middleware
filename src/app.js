@@ -2,11 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import ticketRoutes from './routes/ticketRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import { swaggerDocument } from './config/swagger.js';
 
 dotenv.config();
 
@@ -21,9 +21,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-// Configuración de Swagger
-const swaggerDocument = YAML.load(path.join(__dirname, '../swagger.yaml'));
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// Configuración de Swagger UI
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+    explorer: true,
+    customSiteTitle: "Vivla API Documentation",
+    swaggerOptions: {
+        persistAuthorization: true
+    }
+}));
 
 // Ruta principal
 app.get('/', (req, res) => {
