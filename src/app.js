@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import ticketRoutes from './routes/ticketRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import swaggerDocs from './config/swagger.js';
 
 // Cargar variables de entorno lo antes posible
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
 // Rutas
 app.use('/v1/tickets', ticketRoutes);
 app.use('/v1/reviews', reviewRoutes);
+app.use('/v1/report', reportRoutes);
 
 // Manejo de errores para Vercel
 app.use((err, req, res, next) => {

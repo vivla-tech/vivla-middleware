@@ -202,6 +202,44 @@ const swaggerOptions = {
                             example: 'Descripción del error'
                         }
                     }
+                },
+                Report: {
+                    type: 'object',
+                    properties: {
+                        user_id: {
+                            type: 'string',
+                            description: 'ID codificado del usuario'
+                        },
+                        user_email: {
+                            type: 'string',
+                            description: 'Email del usuario'
+                        },
+                        home_id: {
+                            type: 'string',
+                            description: 'ID de la casa'
+                        },
+                        user_name: {
+                            type: 'string',
+                            description: 'Nombre del usuario'
+                        },
+                        destination: {
+                            type: 'string',
+                            description: 'Destino de la propiedad'
+                        },
+                        last_year_total_days_enjoyed: {
+                            type: 'string',
+                            description: 'Días disfrutados el año pasado'
+                        },
+                        last_year_number_of_exchanges: {
+                            type: 'string',
+                            description: 'Número de intercambios el año pasado'
+                        },
+                        last_year_market_exchange_price: {
+                            type: 'string',
+                            description: 'Precio de mercado de intercambios el año pasado'
+                        },
+                        // Nota: Hay más campos en la respuesta real
+                    }
                 }
             }
         }
