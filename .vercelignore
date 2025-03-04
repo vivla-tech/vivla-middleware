@@ -3,5 +3,4 @@ node_modules
 .env.*
 .git
 .gitignore
-README.md
-!node_modules/swagger-ui-dist 
+README.md 
