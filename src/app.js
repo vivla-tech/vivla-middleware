@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import swaggerUi from 'swagger-ui-express';
-import { swaggerSpec } from './config/swagger.js';
 import ticketRoutes from './routes/ticketRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 
@@ -16,15 +14,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
-
-// Configuración de Swagger
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-    explorer: true,
-    customSiteTitle: "Vivla API Documentation",
-    swaggerOptions: {
-        persistAuthorization: true
-    }
-}));
 
 // Ruta principal
 app.get('/', (req, res) => {
@@ -47,7 +36,6 @@ app.use((err, req, res, next) => {
 if (NODE_ENV !== 'production') {
     app.listen(PORT || 3000, () => {
         console.log(`Servidor en puerto ${PORT || 3000}`);
-        console.log(`Documentación Swagger disponible en: http://localhost:${PORT || 3000}/api-docs`);
     });
 }
 
