@@ -14,12 +14,21 @@ export async function getAllReviews() {
         const reviewsData = [];
         for (const doc of querySnapshot.docs) {
             const data = doc.data();
-            const homeName = await getHouseNameById(data.hid);
-            reviewsData.push({
-                id: doc.id,
-                ...data,
-                homeName
-            });
+            try {
+                const homeName = await getHouseNameById(data.hid);
+                reviewsData.push({
+                    id: doc.id,
+                    ...data,
+                    homeName: homeName || null
+                });
+            } catch (error) {
+                console.error(`Error al obtener nombre de casa para review ${doc.id}:`, error);
+                reviewsData.push({
+                    id: doc.id,
+                    ...data,
+                    homeName: null
+                });
+            }
         }
 
         return {
