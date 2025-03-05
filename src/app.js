@@ -5,6 +5,7 @@ import ticketRoutes from './routes/ticketRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import swaggerDocs from './config/swagger.js';
+import { apiKeyAuth } from './middleware/auth.js';
 
 // Cargar variables de entorno lo antes posible
 dotenv.config();
@@ -25,6 +26,8 @@ swaggerDocs(app);
 app.get('/', (req, res) => {
     res.send('Middleware OK');
 });
+
+app.use('/v1', apiKeyAuth);
 
 // Rutas
 app.use('/v1/tickets', ticketRoutes);
