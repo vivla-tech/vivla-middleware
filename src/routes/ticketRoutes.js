@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTicketById, getTickets, getTicketsStats } from '../controllers/ticketController.js';
+import { getTicketByIdController, getTicketsController, getTicketsStatsController } from '../controllers/ticketController.js';
 
 const router = express.Router();
 
@@ -41,7 +41,21 @@ const router = express.Router();
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/', getTickets);
+router.get('/', getTicketsController);
+
+/**
+ * @swagger
+ * /tickets/stats:
+ *   get:
+ *     summary: Obtener estadísticas de tickets
+ *     description: Obtiene estadísticas generales de los tickets
+ *     responses:
+ *       200:
+ *         description: Estadísticas obtenidas exitosamente
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/stats', getTicketsStatsController);
 
 /**
  * @swagger
@@ -64,20 +78,6 @@ router.get('/', getTickets);
  *       500:
  *         description: Error interno del servidor
  */
-router.get('/:id', getTicketById);
-
-/**
- * @swagger
- * /tickets/stats:
- *   get:
- *     summary: Obtener estadísticas de tickets
- *     description: Obtiene estadísticas generales de los tickets
- *     responses:
- *       200:
- *         description: Estadísticas obtenidas exitosamente
- *       500:
- *         description: Error interno del servidor
- */
-router.get('/stats', getTicketsStats);
+router.get('/:id', getTicketByIdController);
 
 export default router; 

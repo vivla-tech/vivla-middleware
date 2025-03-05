@@ -1,61 +1,85 @@
-import { getTicketById as getTicketByIdService, getTickets as getTicketsService, getTicketsStats as getTicketsStatsService } from '../services/ticketService.js';
+import { getTicketById, getTickets, getTicketsStats } from '../services/ticketService.js';
 
-export async function getTicketById(req, res) {
+export async function getTicketByIdController(req, res) {
     try {
         const ticketId = req.params.id;
-        const result = await getTicketByIdService(ticketId);
-        return res.json(result);
+
+        if (!ticketId) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Se requiere el ID del ticket'
+            });
+        }
+
+        const result = await getTicketById(ticketId);
+
+        if (result.status === 'error') {
+            // Si no se encontró el ticket, devolver 404
+            if (result.message.includes('No se encontró')) {
+                return res.status(404).json(result);
+            }
+            // Otros errores son 500
+            return res.status(500).json(result);
+        }
+
+        return res.status(200).json(result);
     } catch (error) {
-        console.error(`Error al obtener ticket:`, error);
-        return res.status(error.response?.status || 500).json({
+        console.error(`Error en el controlador de tickets:`, error);
+        return res.status(500).json({
             status: 'error',
-            message: 'Error al obtener el ticket',
+            message: 'Error interno del servidor',
             error: error.message
         });
     }
 }
 
-export async function getTickets(req, res) {
+export async function getTicketsController(req, res) {
     try {
         const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc' } = req.query;
-        const result = await getTicketsService(page, per_page, sort_by, sort_order);
+        const result = await getTickets(page, per_page, sort_by, sort_order);
+
+        if (result.status === 'error') {
+            return res.status(500).json(result);
+        }
 
         // Obtener el protocolo y host del request
         const protocol = req.protocol;
         const host = req.get('host');
 
         // Construir URLs completas para la paginación
-        const nextPage = result.data.next_page
-            ? `${protocol}://${host}/api/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
-            : null;
+        if (result.data.next_page) {
+            result.data.next_page = `${protocol}://${host}/api/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`;
+        }
 
-        const previousPage = result.data.previous_page
-            ? `${protocol}://${host}/api/tickets?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`
-            : null;
+        if (result.data.previous_page) {
+            result.data.previous_page = `${protocol}://${host}/api/tickets?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`;
+        }
 
-        result.data.next_page = nextPage;
-        result.data.previous_page = previousPage;
-
-        return res.json(result);
+        return res.status(200).json(result);
     } catch (error) {
-        console.error('Error al obtener tickets:', error);
-        return res.status(error.response?.status || 500).json({
+        console.error('Error en el controlador de tickets:', error);
+        return res.status(500).json({
             status: 'error',
-            message: 'Error al obtener tickets',
+            message: 'Error interno del servidor',
             error: error.message
         });
     }
 }
 
-export async function getTicketsStats(req, res) {
+export async function getTicketsStatsController(req, res) {
     try {
-        const result = await getTicketsStatsService();
-        return res.json(result);
+        const result = await getTicketsStats();
+
+        if (result.status === 'error') {
+            return res.status(500).json(result);
+        }
+
+        return res.status(200).json(result);
     } catch (error) {
-        console.error('Error al obtener estadísticas de homes:', error);
-        return res.status(error.response?.status || 500).json({
+        console.error('Error en el controlador de estadísticas de tickets:', error);
+        return res.status(500).json({
             status: 'error',
-            message: 'Error al obtener estadísticas',
+            message: 'Error interno del servidor',
             error: error.message
         });
     }
