@@ -1,37 +1,41 @@
-import axios from 'axios';
-import { zendeskConfig } from '../config/zendesk.js';
+import { getZendeskTicketById, getZendeskTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 export async function getTicketById(ticketId) {
     try {
         console.log(`Obteniendo ticket con ID: ${ticketId}`);
 
-        const response = await axios.get(
-            `${zendeskConfig.url}/tickets/${ticketId}.json?include=users`,
-            { headers: zendeskConfig.headers }
-        );
+        const ticket = await getZendeskTicketById(ticketId);
+
+        if (!ticket) {
+            return {
+                status: 'error',
+                message: `No se encontró el ticket con ID: ${ticketId}`
+            };
+        }
 
         return {
             status: 'success',
-            data: homeStatsHelpers.formatTicket(response.data.ticket)
+            data: homeStatsHelpers.formatTicket(ticket)
         };
     } catch (error) {
         console.error(`Error al obtener ticket:`, error);
-        throw error;
+        return {
+            status: 'error',
+            message: 'Error al obtener el ticket',
+            error: error.message
+        };
     }
 }
 
 export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
     try {
-        const response = await axios.get(
-            `${zendeskConfig.url}/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`,
-            { headers: zendeskConfig.headers }
-        );
+        const response = await getZendeskTickets(page, per_page, sort_by, sort_order);
 
         // Cargar nombres de usuarios
-        await homeStatsHelpers.loadUserNames(response.data.tickets);
+        await homeStatsHelpers.loadUserNames(response.tickets);
 
-        const formattedTickets = response.data.tickets.map(ticket =>
+        const formattedTickets = response.tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
         );
 
@@ -39,21 +43,25 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
             status: 'success',
             data: {
                 tickets: formattedTickets,
-                count: response.data.count,
-                next_page: response.data.next_page,
-                previous_page: response.data.previous_page
+                count: response.count,
+                next_page: response.next_page,
+                previous_page: response.previous_page
             }
         };
     } catch (error) {
         console.error('Error al obtener tickets:', error);
-        throw error;
+        return {
+            status: 'error',
+            message: 'Error al obtener tickets',
+            error: error.message
+        };
     }
 }
 
 export async function getTicketsStats() {
     try {
         // 1. Obtener lista única de casas
-        const uniqueHomes = await homeStatsHelpers.getUniqueHomes();
+        const uniqueHomes = await getZendeskUniqueHomes();
 
         // 2. Estructura para almacenar estadísticas
         const homeStats = {};
@@ -62,7 +70,7 @@ export async function getTicketsStats() {
         for (const homeName of uniqueHomes) {
             try {
                 // Obtener tickets de esta casa
-                const tickets = await homeStatsHelpers.getTicketsForHome(homeName);
+                const tickets = await getZendeskTicketsForHome(homeName);
 
                 // Inicializar estadísticas para esta casa
                 homeStats[homeName] = homeStatsHelpers.initializeHomeStats(homeName);
@@ -89,6 +97,10 @@ export async function getTicketsStats() {
         };
     } catch (error) {
         console.error('Error al obtener estadísticas de homes:', error);
-        throw error;
+        return {
+            status: 'error',
+            message: 'Error al obtener estadísticas de homes',
+            error: error.message
+        };
     }
 } 
