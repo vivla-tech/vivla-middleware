@@ -14,6 +14,8 @@ export async function getTicketById(ticketId) {
             };
         }
 
+        await homeStatsHelpers.loadUserNames([ticket]);
+
         return {
             status: 'success',
             data: homeStatsHelpers.formatTicket(ticket)
