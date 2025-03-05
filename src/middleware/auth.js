@@ -1,5 +1,5 @@
-// Lista de API keys válidas (en producción deberían estar en una base de datos o variables de entorno)
-const API_KEYS = process.env.API_KEYS ? process.env.API_KEYS.split(',') : ['clave-desarrollo-123'];
+// Lista de API keys válidas
+const API_KEYS = process.env.API_KEYS ? process.env.API_KEYS.split(',') : [];
 
 // Middleware de autenticación simple
 export function apiKeyAuth(req, res, next) {
