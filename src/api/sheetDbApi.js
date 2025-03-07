@@ -40,5 +40,5 @@ export async function getReportDataByUserId(userId) {
 
 
 export async function getBreakdownData() {
-    return fetchSheetDbData('?sheet=Detail');
+    return fetchSheetDbData('?sheet=sync-detail');
 }
