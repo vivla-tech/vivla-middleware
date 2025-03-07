@@ -26,4 +26,9 @@ export async function getReportDataByHomeId(homeId) {
 
 export async function getReportDataByUserId(userId) {
     return fetchSheetDbData(`/search?user_id=${userId}`);
-} 
+}
+
+
+export async function getBreakdownData() {
+    return fetchSheetDbData('?sheet=sync-detail');
+}

@@ -1,4 +1,4 @@
-import { getReportData, getReportDataByHomeId, getReportDataByUserId } from '../api/sheetDbApi.js';
+import { getReportData, getReportDataByHomeId, getReportDataByUserId, getBreakdownData } from '../api/sheetDbApi.js';
 
 export async function getReportList() {
     try {
@@ -47,6 +47,7 @@ export async function getReportByHomeId(homeId) {
 
 export async function getReportByUserId(userId) {
     try {
+        // Obtener reportes básicos por userId
         const reportData = await getReportDataByUserId(userId);
 
         // Si no hay datos, retornar un mensaje específico
@@ -57,9 +58,32 @@ export async function getReportByUserId(userId) {
             };
         }
 
+        // Obtener datos detallados de la pestaña Detail
+        const detailData = await getBreakdownData();
+
+        // Filtrar los detalles que coincidan exactamente con el user_id
+        const matchingDetails = detailData.filter(detail => detail.user_id === userId);
+
+        // Enriquecer los datos del reporte con los detalles o mensaje informativo
+        const enrichedData = reportData.map(report => {
+            if (matchingDetails.length > 0) {
+                // Si hay coincidencia, incluir los datos de desglose
+                return {
+                    ...report,
+                    breakdown: matchingDetails[0]
+                };
+            } else {
+                // Si no hay coincidencia, incluir mensaje informativo
+                return {
+                    ...report,
+                    breakdown: { message: "No se encontró desglose" }
+                };
+            }
+        });
+
         return {
             status: 'success',
-            data: reportData
+            data: enrichedData
         };
     } catch (error) {
         console.error(`Error al obtener reportes para el usuario ${userId}:`, error);
