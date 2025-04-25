@@ -1,4 +1,4 @@
-import { getReportData, getReportDataByHomeId, getReportDataByUserId, getBreakdownData } from '../api/sheetDbApi.js';
+import { getReportData, getReportDataByHomeId, getReportDataByUserId, getBreakdownData, getReportData2025, getReportData2025ByUserId, getBreakdownData2025 } from '../api/sheetDbApi.js';
 
 export async function getReportList() {
     try {
@@ -93,4 +93,55 @@ export async function getReportByUserId(userId) {
             error: error.message
         };
     }
-} 
+}
+
+
+export async function getReport2025() {
+    try {
+        const reportData = await getReportData2025();
+
+        return {
+            status: 'success',
+            data: reportData
+        };
+    }
+    catch (error) {
+        console.error('Error al obtener reportes 2025:', error);
+        return {
+            status: 'error',
+            message: 'No se pudo obtener los reportes 2025',
+            error: error.message
+        };
+    }
+}
+
+export async function getReport2025ByUserId(userId) {
+    try {
+        const reportData = await getReportData2025ByUserId(userId);
+
+        const breakdownData = await getBreakdownData2025();
+
+        const enrichedData = reportData.map(report => {
+            const breakdown = breakdownData.find(detail => detail.user_id === report.user_id);
+            return {
+                ...report,
+                breakdown: breakdown || { message: "No se encontró desglose" }
+            };
+        });
+
+        return {
+            status: 'success',
+            data: enrichedData
+        };
+    }
+    catch (error) {
+        console.error('Error al obtener reportes 2025 por usuario:', error);
+        return {
+            status: 'error',
+            message: 'No se pudo obtener los reportes 2025 por usuario',
+            error: error.message
+        };
+    }
+}
+
+
