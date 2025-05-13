@@ -134,6 +134,7 @@ export async function getReportData2025ByUserId(userId) {
 export async function getBreakdownData2025() {
     const selectedFields = [
         'user_id',
+        'summary_video_url',
         'next_year_fixed_expenses_total',
         'next_year_budget_community',
         'next_year_budget_vivla_community',
