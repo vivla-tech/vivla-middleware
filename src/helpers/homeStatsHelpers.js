@@ -169,7 +169,8 @@ export const homeStatsHelpers = {
             priority: ticket.priority,
             requester_name: this.getUserName(ticket, 'requester'),
             assignee_name: this.getUserName(ticket, 'assignee'),
-            description: ticket.description
+            description: ticket.description,
+            home_name: ticket.custom_fields.find(field => field.id === HOME_FIELD_ID)?.value
         };
     },
 
