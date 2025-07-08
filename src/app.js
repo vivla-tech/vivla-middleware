@@ -5,6 +5,7 @@ import ticketRoutes from './routes/ticketRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import homeRoutes from './routes/homeRoutes.js';
 import swaggerDocs from './config/swagger.js';
 import { apiKeyAuth } from './middleware/auth.js';
 
@@ -35,6 +36,7 @@ app.use('/v1/tickets', ticketRoutes);
 app.use('/v1/reviews', reviewRoutes);
 app.use('/v1/report', reportRoutes);
 app.use('/v1/users', userRoutes);
+app.use('/v1/homes', homeRoutes);
 
 // Manejo de errores para Vercel
 app.use((err, req, res, next) => {
