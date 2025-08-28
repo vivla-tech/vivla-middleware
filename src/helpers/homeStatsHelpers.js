@@ -164,6 +164,7 @@ export const homeStatsHelpers = {
             id: ticket.id,
             subject: ticket.subject,
             status: ticket.status,
+            custom_status: ticket.custom_status_id,
             created_at: ticket.created_at,
             updated_at: ticket.updated_at,
             priority: ticket.priority,
