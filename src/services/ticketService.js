@@ -14,7 +14,12 @@ export async function getTicketById(ticketId) {
             };
         }
 
-        await homeStatsHelpers.loadUserNames([ticket]);
+        // Precargar datos necesarios
+        await Promise.all([
+            homeStatsHelpers.loadUserNames([ticket]),
+            homeStatsHelpers.loadGroupNames([ticket]),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
 
         return {
             status: 'success',
@@ -34,9 +39,14 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
     try {
         const response = await getZendeskTickets(page, per_page, sort_by, sort_order);
 
-        // Cargar nombres de usuarios
-        await homeStatsHelpers.loadUserNames(response.tickets);
+        // Precargar todos los datos necesarios en paralelo
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(response.tickets),
+            homeStatsHelpers.loadGroupNames(response.tickets),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
 
+        // Formatear todos los tickets (ahora es súper rápido)
         const formattedTickets = response.tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
         );
@@ -65,8 +75,9 @@ export async function getTicketsStats() {
         // 1. Obtener lista única de casas
         const uniqueHomes = await getZendeskUniqueHomes();
 
-        // 2. Estructura para almacenar estadísticas
+        // 2. Estructura para almacenar estadísticas y todos los tickets
         const homeStats = {};
+        let allTickets = [];
 
         // 3. Procesar cada casa
         for (const homeName of uniqueHomes) {
@@ -81,16 +92,27 @@ export async function getTicketsStats() {
                 tickets.forEach(ticket => {
                     homeStatsHelpers.processTicket(ticket, homeStats);
                 });
+
+                // Agregar tickets al array total para precarga
+                allTickets = allTickets.concat(tickets);
             } catch (error) {
                 console.error(`Error procesando casa ${homeName}:`, error);
                 continue;
             }
         }
 
-        // 4. Procesar los tickets recientes para cada home
+        // 4. Precargar todos los datos necesarios una sola vez
+        console.log(`Precargando datos para ${allTickets.length} tickets...`);
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(allTickets),
+            homeStatsHelpers.loadGroupNames(allTickets),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+
+        // 5. Procesar los tickets recientes para cada home (ahora súper rápido)
         homeStatsHelpers.processRecentTickets(homeStats);
 
-        // 5. Convertir a array y retornar
+        // 6. Convertir a array y retornar
         return {
             status: 'success',
             data: {
