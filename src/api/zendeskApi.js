@@ -23,8 +23,74 @@ export async function getZendeskTicketById(ticketId) {
 }
 
 // Obtener lista de tickets con paginación
-export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
-    return fetchZendeskData(`/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`);
+export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+    const HOME_FIELD_ID = 17925940459804;
+    
+    if (homeName) {
+        // Si se proporciona un nombre de casa, usar la API de búsqueda con filtro
+        const query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)}`;
+        const encodedQuery = encodeURIComponent(query);
+        const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
+        
+        console.log('URL completa:', `${zendeskConfig.url}${endpoint}`);
+        console.log('Query:', query);
+        console.log('Query codificada:', encodedQuery);
+        
+        return fetchZendeskData(endpoint);
+    } else {
+        // Sin filtro de casa, usar la API estándar de tickets
+        return fetchZendeskData(`/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`);
+    }
+}
+
+// Obtener tickets filtrados por custom_status usando la API de búsqueda
+export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+    const HOME_FIELD_ID = 17925940459804;
+    
+    let query = `custom_status_id:${customStatusId}`;
+    
+    // Si se proporciona un nombre de casa, agregar el filtro
+    if (homeName) {
+        query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_status_id:${customStatusId}`;
+    }
+    
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
+    
+    console.log('URL completa:', `${zendeskConfig.url}${endpoint}`);
+    console.log('Query:', query);
+    console.log('Query codificada:', encodedQuery);
+    
+    return fetchZendeskData(endpoint);
+}
+
+// Obtener tickets de reparaciones filtrados por custom field
+export async function getZendeskRepairTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+    const HOME_FIELD_ID = 17925940459804;
+    const REPAIR_FIELD_ID = 17926767041308;
+    
+    let query = `custom_field_${REPAIR_FIELD_ID}:*`;
+    
+    // Si se proporciona un nombre de casa, agregar el filtro
+    if (homeName) {
+        query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_field_${REPAIR_FIELD_ID}:*`;
+    }
+    
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
+    
+    return fetchZendeskData(endpoint);
+}
+
+// Obtener tickets de reparaciones para una casa específica (sin paginación, para estadísticas)
+export async function getZendeskHomeRepairTickets(homeName) {
+    const HOME_FIELD_ID = 17925940459804;
+    const REPAIR_FIELD_ID = 17926767041308;
+    const query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_field_${REPAIR_FIELD_ID}:*`;
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/search.json?query=${encodedQuery}&include=users`;
+    
+    return fetchZendeskData(endpoint);
 }
 
 // Funciones para obtener estadísticas de tickets

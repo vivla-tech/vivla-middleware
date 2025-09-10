@@ -42,6 +42,11 @@ const router = express.Router();
  *                         type: boolean
  *                         description: Indica si es una casa de prueba
  *                         example: false
+ *                       zendesk_name:
+ *                         type: string
+ *                         nullable: true
+ *                         description: Nombre más similar encontrado en Zendesk
+ *                         example: "Casa Saona"
  *                 count:
  *                   type: integer
  *                   description: Número total de casas

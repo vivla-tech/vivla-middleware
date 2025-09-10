@@ -30,11 +30,12 @@ export async function getHousesListController(req, res) {
 
         console.log(`Procesando ${housesResult.data.length} casas...`);
 
-        // Filtrar solo los campos hid, name e is_test_home de cada casa
+        // Filtrar solo los campos hid, name, is_test_home y zendesk_name de cada casa
         const filteredHouses = housesResult.data.map(house => ({
             hid: house.hid,
             name: house.name,
-            is_test_home: house.is_test_home || false
+            is_test_home: house.is_test_home || false,
+            zendesk_name: house.zendesk_name || null
         }));
 
         console.log(`Listado de casas procesado exitosamente`);

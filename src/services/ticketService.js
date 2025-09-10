@@ -1,4 +1,4 @@
-import { getZendeskTicketById, getZendeskTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
+import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskRepairTickets, getZendeskHomeRepairTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 export async function getTicketById(ticketId) {
@@ -35,19 +35,20 @@ export async function getTicketById(ticketId) {
     }
 }
 
-export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
+export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
     try {
-        const response = await getZendeskTickets(page, per_page, sort_by, sort_order);
+        const response = await getZendeskTickets(page, per_page, sort_by, sort_order, homeName);
 
         // Precargar todos los datos necesarios en paralelo
         await Promise.all([
-            homeStatsHelpers.loadUserNames(response.tickets),
-            homeStatsHelpers.loadGroupNames(response.tickets),
+            homeStatsHelpers.loadUserNames(response.tickets || response.results),
+            homeStatsHelpers.loadGroupNames(response.tickets || response.results),
             homeStatsHelpers.preloadCustomFieldsOptions()
         ]);
 
         // Formatear todos los tickets (ahora es súper rápido)
-        const formattedTickets = response.tickets.map(ticket =>
+        const tickets = response.tickets || response.results;
+        const formattedTickets = tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
         );
 
@@ -57,7 +58,8 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
                 tickets: formattedTickets,
                 count: response.count,
                 next_page: response.next_page,
-                previous_page: response.previous_page
+                previous_page: response.previous_page,
+                home_filter: homeName || null
             }
         };
     } catch (error) {
@@ -65,6 +67,116 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
         return {
             status: 'error',
             message: 'Error al obtener tickets',
+            error: error.message
+        };
+    }
+}
+
+export async function getImprovementProposalTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+    try {
+        const CUSTOM_STATUS_ID = 18587461153436;
+        const response = await getZendeskTicketsByCustomStatus(CUSTOM_STATUS_ID, page, per_page, sort_by, sort_order, homeName);
+
+        // Precargar todos los datos necesarios en paralelo
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(response.results),
+            homeStatsHelpers.loadGroupNames(response.results),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+
+        // Formatear todos los tickets (ahora es súper rápido)
+        const formattedTickets = response.results.map(ticket =>
+            homeStatsHelpers.formatTicket(ticket)
+        );
+
+        return {
+            status: 'success',
+            data: {
+                tickets: formattedTickets,
+                count: response.count,
+                next_page: response.next_page,
+                previous_page: response.previous_page,
+                home_filter: homeName || null
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener tickets de propuesta de mejora:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener tickets de propuesta de mejora',
+            error: error.message
+        };
+    }
+}
+
+export async function getRepairTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+    try {
+        const response = await getZendeskRepairTickets(page, per_page, sort_by, sort_order, homeName);
+
+        // Precargar todos los datos necesarios en paralelo
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(response.results),
+            homeStatsHelpers.loadGroupNames(response.results),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+
+        // Formatear todos los tickets (ahora es súper rápido)
+        const formattedTickets = response.results.map(ticket =>
+            homeStatsHelpers.formatTicket(ticket)
+        );
+
+        return {
+            status: 'success',
+            data: {
+                tickets: formattedTickets,
+                count: response.count,
+                next_page: response.next_page,
+                previous_page: response.previous_page,
+                home_filter: homeName || null
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener tickets de reparaciones:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener tickets de reparaciones',
+            error: error.message
+        };
+    }
+}
+
+export async function getHomeRepairStats(homeName) {
+    try {
+        const response = await getZendeskHomeRepairTickets(homeName);
+        
+        // Precargar datos necesarios para obtener nombres de campos personalizados
+        await homeStatsHelpers.preloadCustomFieldsOptions();
+        
+        const REPAIR_FIELD_ID = 17926767041308;
+        const stats = {};
+        
+        // Contar tickets por cada tipo de custom field de reparaciones
+        response.results.forEach(ticket => {
+            const repairField = ticket.custom_fields.find(field => field.id === REPAIR_FIELD_ID);
+            if (repairField && repairField.value) {
+                const repairType = repairField.value;
+                stats[repairType] = (stats[repairType] || 0) + 1;
+            }
+        });
+
+        return {
+            status: 'success',
+            data: {
+                home_name: homeName,
+                total_tickets: response.results.length,
+                repair_stats: stats
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener estadísticas de reparaciones para casa:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener estadísticas de reparaciones para casa',
             error: error.message
         };
     }
