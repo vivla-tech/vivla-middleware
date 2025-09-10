@@ -35,19 +35,20 @@ export async function getTicketById(ticketId) {
     }
 }
 
-export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
+export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
     try {
-        const response = await getZendeskTickets(page, per_page, sort_by, sort_order);
+        const response = await getZendeskTickets(page, per_page, sort_by, sort_order, homeName);
 
         // Precargar todos los datos necesarios en paralelo
         await Promise.all([
-            homeStatsHelpers.loadUserNames(response.tickets),
-            homeStatsHelpers.loadGroupNames(response.tickets),
+            homeStatsHelpers.loadUserNames(response.tickets || response.results),
+            homeStatsHelpers.loadGroupNames(response.tickets || response.results),
             homeStatsHelpers.preloadCustomFieldsOptions()
         ]);
 
         // Formatear todos los tickets (ahora es súper rápido)
-        const formattedTickets = response.tickets.map(ticket =>
+        const tickets = response.tickets || response.results;
+        const formattedTickets = tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
         );
 
@@ -57,7 +58,8 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
                 tickets: formattedTickets,
                 count: response.count,
                 next_page: response.next_page,
-                previous_page: response.previous_page
+                previous_page: response.previous_page,
+                home_filter: homeName || null
             }
         };
     } catch (error) {
