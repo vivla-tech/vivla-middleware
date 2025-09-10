@@ -26,6 +26,113 @@ let groupCache = {};
 let customFieldCache = {};
 
 export const homeStatsHelpers = {
+    // Obtener todas las opciones configuradas del custom field HOME_FIELD_ID desde ticket_fields
+    async getAllZendeskHomeValues() {
+        try {
+            console.log('Obteniendo todas las opciones configuradas del custom field HOME_FIELD_ID...');
+
+            const response = await axios.get(
+                `${zendeskConfig.url}/ticket_fields.json`,
+                {
+                    headers: zendeskConfig.headers
+                }
+            );
+
+            if (!response.data || !response.data.ticket_fields) {
+                throw new Error('No se encontraron campos de ticket en Zendesk');
+            }
+
+            // Buscar el custom field específico por su ID
+            const homeField = response.data.ticket_fields.find(
+                field => field.id === HOME_FIELD_ID
+            );
+
+            if (!homeField) {
+                throw new Error(`No se encontró el custom field con ID: ${HOME_FIELD_ID}`);
+            }
+
+            if (!homeField.custom_field_options || homeField.custom_field_options.length === 0) {
+                console.log('El custom field no tiene opciones configuradas');
+                return {
+                    status: 'success',
+                    data: [],
+                    count: 0
+                };
+            }
+
+            // Extraer todos los valores de las opciones configuradas
+            const homeValues = homeField.custom_field_options.map(option => option.value);
+            
+            console.log(`Se encontraron ${homeValues.length} opciones configuradas para el custom field HOME_FIELD_ID`);
+
+            return {
+                status: 'success',
+                data: homeValues,
+                count: homeValues.length,
+                field_info: {
+                    id: homeField.id,
+                    title: homeField.title,
+                    type: homeField.type
+                }
+            };
+
+        } catch (error) {
+            console.error('Error al obtener opciones del custom field HOME_FIELD_ID:', error);
+            return {
+                status: 'error',
+                message: 'Error al obtener opciones del custom field HOME_FIELD_ID',
+                error: error.message
+            };
+        }
+    },
+
+    // Función legacy para obtener valores únicos desde tickets (mantener por compatibilidad)
+    async getAllZendeskHomeValuesFromTickets() {
+        try {
+            console.log('Obteniendo todos los valores de casas de Zendesk desde tickets...');
+
+            const response = await axios.get(
+                `${zendeskConfig.url}/search.json?query=custom_field_${HOME_FIELD_ID}:*&include=users&sort_by=created_at&sort_order=desc`,
+                {
+                    headers: zendeskConfig.headers
+                }
+            );
+
+            if (!response.data || !response.data.results) {
+                throw new Error('No se encontraron datos de casas en Zendesk');
+            }
+
+            // Extraer todos los valores únicos del custom field HOME_FIELD_ID
+            const homeValues = new Set();
+            
+            response.data.results.forEach(ticket => {
+                const homeField = ticket.custom_fields?.find(
+                    field => field.id === HOME_FIELD_ID
+                );
+                if (homeField && homeField.value) {
+                    homeValues.add(homeField.value);
+                }
+            });
+
+            const uniqueValues = Array.from(homeValues);
+            console.log(`Se encontraron ${uniqueValues.length} valores únicos de casas en Zendesk desde tickets`);
+
+            return {
+                status: 'success',
+                data: uniqueValues,
+                count: uniqueValues.length
+            };
+
+        } catch (error) {
+            console.error('Error al obtener valores de casas de Zendesk desde tickets:', error);
+            return {
+                status: 'error',
+                message: 'Error al obtener valores de casas de Zendesk desde tickets',
+                error: error.message
+            };
+        }
+    },
+
     // Obtener lista única de casas usando la API de búsqueda de Zendesk
     async getUniqueHomes() {
         try {
