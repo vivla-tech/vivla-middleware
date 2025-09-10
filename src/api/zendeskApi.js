@@ -28,8 +28,16 @@ export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'crea
 }
 
 // Obtener tickets filtrados por custom_status usando la API de búsqueda
-export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
-    const query = `custom_status_id:${customStatusId}`;
+export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+    const HOME_FIELD_ID = 17925940459804;
+    
+    let query = `custom_status_id:${customStatusId}`;
+    
+    // Si se proporciona un nombre de casa, agregar el filtro
+    if (homeName) {
+        query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_status_id:${customStatusId}`;
+    }
+    
     const encodedQuery = encodeURIComponent(query);
     const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
     

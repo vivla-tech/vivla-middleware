@@ -70,10 +70,10 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
     }
 }
 
-export async function getImprovementProposalTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
+export async function getImprovementProposalTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
     try {
         const CUSTOM_STATUS_ID = 18587461153436;
-        const response = await getZendeskTicketsByCustomStatus(CUSTOM_STATUS_ID, page, per_page, sort_by, sort_order);
+        const response = await getZendeskTicketsByCustomStatus(CUSTOM_STATUS_ID, page, per_page, sort_by, sort_order, homeName);
 
         // Precargar todos los datos necesarios en paralelo
         await Promise.all([
@@ -93,7 +93,8 @@ export async function getImprovementProposalTickets(page = 1, per_page = 25, sor
                 tickets: formattedTickets,
                 count: response.count,
                 next_page: response.next_page,
-                previous_page: response.previous_page
+                previous_page: response.previous_page,
+                home_filter: homeName || null
             }
         };
     } catch (error) {

@@ -62,7 +62,7 @@ router.get('/stats', getTicketsStatsController);
  * /v1/tickets/improvement-proposals:
  *   get:
  *     summary: Obtener tickets de propuesta de mejora
- *     description: Obtiene una lista paginada de tickets filtrados por custom_status específico (18587461153436)
+ *     description: Obtiene una lista paginada de tickets filtrados por custom_status específico (18587461153436). Opcionalmente puede filtrar por casa específica.
  *     parameters:
  *       - in: query
  *         name: page
@@ -89,9 +89,42 @@ router.get('/stats', getTicketsStatsController);
  *           enum: [asc, desc]
  *           default: desc
  *         description: Orden de clasificación
+ *       - in: query
+ *         name: home
+ *         schema:
+ *           type: string
+ *         description: Nombre de la casa para filtrar (opcional)
+ *         example: "Casa Ejemplo"
  *     responses:
  *       200:
  *         description: Lista de tickets de propuesta de mejora obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tickets:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     count:
+ *                       type: integer
+ *                     next_page:
+ *                       type: string
+ *                       nullable: true
+ *                     previous_page:
+ *                       type: string
+ *                       nullable: true
+ *                     home_filter:
+ *                       type: string
+ *                       nullable: true
+ *                       description: Nombre de la casa filtrada (si se aplicó filtro)
  *       500:
  *         description: Error interno del servidor
  */
