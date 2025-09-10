@@ -1,4 +1,4 @@
-import { getZendeskTicketById, getZendeskTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
+import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 export async function getTicketById(ticketId) {
@@ -65,6 +65,42 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
         return {
             status: 'error',
             message: 'Error al obtener tickets',
+            error: error.message
+        };
+    }
+}
+
+export async function getImprovementProposalTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
+    try {
+        const CUSTOM_STATUS_ID = 18587461153436;
+        const response = await getZendeskTicketsByCustomStatus(CUSTOM_STATUS_ID, page, per_page, sort_by, sort_order);
+
+        // Precargar todos los datos necesarios en paralelo
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(response.results),
+            homeStatsHelpers.loadGroupNames(response.results),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+
+        // Formatear todos los tickets (ahora es súper rápido)
+        const formattedTickets = response.results.map(ticket =>
+            homeStatsHelpers.formatTicket(ticket)
+        );
+
+        return {
+            status: 'success',
+            data: {
+                tickets: formattedTickets,
+                count: response.count,
+                next_page: response.next_page,
+                previous_page: response.previous_page
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener tickets de propuesta de mejora:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener tickets de propuesta de mejora',
             error: error.message
         };
     }

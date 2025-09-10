@@ -27,6 +27,19 @@ export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'crea
     return fetchZendeskData(`/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`);
 }
 
+// Obtener tickets filtrados por custom_status usando la API de búsqueda
+export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
+    const query = `custom_status_id:${customStatusId}`;
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
+    
+    console.log('URL completa:', `${zendeskConfig.url}${endpoint}`);
+    console.log('Query:', query);
+    console.log('Query codificada:', encodedQuery);
+    
+    return fetchZendeskData(endpoint);
+}
+
 // Funciones para obtener estadísticas de tickets
 export async function getZendeskUniqueHomes() {
     return homeStatsHelpers.getUniqueHomes();
