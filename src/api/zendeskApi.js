@@ -50,6 +50,17 @@ export async function getZendeskRepairTickets(page = 1, per_page = 25, sort_by =
     return fetchZendeskData(endpoint);
 }
 
+// Obtener tickets de reparaciones para una casa específica (sin paginación, para estadísticas)
+export async function getZendeskHomeRepairTickets(homeName) {
+    const HOME_FIELD_ID = 17925940459804;
+    const REPAIR_FIELD_ID = 17926767041308;
+    const query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_field_${REPAIR_FIELD_ID}:*`;
+    const encodedQuery = encodeURIComponent(query);
+    const endpoint = `/search.json?query=${encodedQuery}&include=users`;
+    
+    return fetchZendeskData(endpoint);
+}
+
 // Funciones para obtener estadísticas de tickets
 export async function getZendeskUniqueHomes() {
     return homeStatsHelpers.getUniqueHomes();

@@ -1,4 +1,4 @@
-import { getTicketById, getTickets, getImprovementProposalTickets, getRepairTickets, getTicketsStats } from '../services/ticketService.js';
+import { getTicketById, getTickets, getImprovementProposalTickets, getRepairTickets, getHomeRepairStats, getTicketsStats } from '../services/ticketService.js';
 
 export async function getTicketByIdController(req, res) {
     try {
@@ -124,6 +124,34 @@ export async function getRepairTicketsController(req, res) {
         return res.status(200).json(result);
     } catch (error) {
         console.error('Error en el controlador de tickets de reparaciones:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error interno del servidor',
+            error: error.message
+        });
+    }
+}
+
+export async function getHomeRepairStatsController(req, res) {
+    try {
+        const { homeName } = req.params;
+
+        if (!homeName) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Se requiere el nombre de la casa'
+            });
+        }
+
+        const result = await getHomeRepairStats(homeName);
+
+        if (result.status === 'error') {
+            return res.status(500).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error('Error en el controlador de estadísticas de reparaciones por casa:', error);
         return res.status(500).json({
             status: 'error',
             message: 'Error interno del servidor',

@@ -1,4 +1,4 @@
-import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskRepairTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
+import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskRepairTickets, getZendeskHomeRepairTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 export async function getTicketById(ticketId) {
@@ -136,6 +136,43 @@ export async function getRepairTickets(page = 1, per_page = 25, sort_by = 'creat
         return {
             status: 'error',
             message: 'Error al obtener tickets de reparaciones',
+            error: error.message
+        };
+    }
+}
+
+export async function getHomeRepairStats(homeName) {
+    try {
+        const response = await getZendeskHomeRepairTickets(homeName);
+        
+        // Precargar datos necesarios para obtener nombres de campos personalizados
+        await homeStatsHelpers.preloadCustomFieldsOptions();
+        
+        const REPAIR_FIELD_ID = 17926767041308;
+        const stats = {};
+        
+        // Contar tickets por cada tipo de custom field de reparaciones
+        response.results.forEach(ticket => {
+            const repairField = ticket.custom_fields.find(field => field.id === REPAIR_FIELD_ID);
+            if (repairField && repairField.value) {
+                const repairType = repairField.value;
+                stats[repairType] = (stats[repairType] || 0) + 1;
+            }
+        });
+
+        return {
+            status: 'success',
+            data: {
+                home_name: homeName,
+                total_tickets: response.results.length,
+                repair_stats: stats
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener estadísticas de reparaciones para casa:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener estadísticas de reparaciones para casa',
             error: error.message
         };
     }

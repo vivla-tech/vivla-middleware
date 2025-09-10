@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTicketByIdController, getTicketsController, getImprovementProposalTicketsController, getRepairTicketsController, getTicketsStatsController } from '../controllers/ticketController.js';
+import { getTicketByIdController, getTicketsController, getImprovementProposalTicketsController, getRepairTicketsController, getHomeRepairStatsController, getTicketsStatsController } from '../controllers/ticketController.js';
 
 const router = express.Router();
 
@@ -136,6 +136,52 @@ router.get('/improvement-proposals', getImprovementProposalTicketsController);
  *         description: Error interno del servidor
  */
 router.get('/repairs', getRepairTicketsController);
+
+/**
+ * @swagger
+ * /v1/tickets/home-repair-stats/{homeName}:
+ *   get:
+ *     summary: Obtener estadísticas de reparaciones por casa
+ *     description: Obtiene estadísticas de tickets de reparaciones para una casa específica, contando por cada tipo de custom field de reparaciones
+ *     parameters:
+ *       - in: path
+ *         name: homeName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Nombre de la casa
+ *     responses:
+ *       200:
+ *         description: Estadísticas de reparaciones obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     home_name:
+ *                       type: string
+ *                       example: "Casa Ejemplo"
+ *                     total_tickets:
+ *                       type: integer
+ *                       example: 15
+ *                     repair_stats:
+ *                       type: object
+ *                       example:
+ *                         "comunicado_a_propietario": 8
+ *                         "en_proceso": 4
+ *                         "completado": 3
+ *       400:
+ *         description: Nombre de casa requerido
+ *       500:
+ *         description: Error interno del servidor
+ */
+router.get('/home-repair-stats/:homeName', getHomeRepairStatsController);
 
 /**
  * @swagger
