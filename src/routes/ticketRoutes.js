@@ -102,7 +102,7 @@ router.get('/improvement-proposals', getImprovementProposalTicketsController);
  * /v1/tickets/repairs:
  *   get:
  *     summary: Obtener tickets de reparaciones
- *     description: Obtiene una lista paginada de tickets filtrados por custom field de reparaciones (17926767041308)
+ *     description: Obtiene una lista paginada de tickets filtrados por custom field de reparaciones (17926767041308). Opcionalmente puede filtrar por casa específica.
  *     parameters:
  *       - in: query
  *         name: page
@@ -129,9 +129,42 @@ router.get('/improvement-proposals', getImprovementProposalTicketsController);
  *           enum: [asc, desc]
  *           default: desc
  *         description: Orden de clasificación
+ *       - in: query
+ *         name: home
+ *         schema:
+ *           type: string
+ *         description: Nombre de la casa para filtrar (opcional)
+ *         example: "Casa Ejemplo"
  *     responses:
  *       200:
  *         description: Lista de tickets de reparaciones obtenida exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     tickets:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                     count:
+ *                       type: integer
+ *                     next_page:
+ *                       type: string
+ *                       nullable: true
+ *                     previous_page:
+ *                       type: string
+ *                       nullable: true
+ *                     home_filter:
+ *                       type: string
+ *                       nullable: true
+ *                       description: Nombre de la casa filtrada (si se aplicó filtro)
  *       500:
  *         description: Error interno del servidor
  */

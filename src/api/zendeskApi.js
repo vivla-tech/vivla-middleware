@@ -41,9 +41,17 @@ export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, 
 }
 
 // Obtener tickets de reparaciones filtrados por custom field
-export async function getZendeskRepairTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
+export async function getZendeskRepairTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+    const HOME_FIELD_ID = 17925940459804;
     const REPAIR_FIELD_ID = 17926767041308;
-    const query = `custom_field_${REPAIR_FIELD_ID}:*`;
+    
+    let query = `custom_field_${REPAIR_FIELD_ID}:*`;
+    
+    // Si se proporciona un nombre de casa, agregar el filtro
+    if (homeName) {
+        query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_field_${REPAIR_FIELD_ID}:*`;
+    }
+    
     const encodedQuery = encodeURIComponent(query);
     const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
     

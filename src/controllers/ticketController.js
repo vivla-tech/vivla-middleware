@@ -101,8 +101,8 @@ export async function getImprovementProposalTicketsController(req, res) {
 
 export async function getRepairTicketsController(req, res) {
     try {
-        const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc' } = req.query;
-        const result = await getRepairTickets(page, per_page, sort_by, sort_order);
+        const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', home } = req.query;
+        const result = await getRepairTickets(page, per_page, sort_by, sort_order, home);
 
         if (result.status === 'error') {
             return res.status(500).json(result);
@@ -112,13 +112,15 @@ export async function getRepairTicketsController(req, res) {
         const protocol = req.protocol;
         const host = req.get('host');
 
-        // Construir URLs completas para la paginación
+        // Construir URLs completas para la paginación (incluyendo el filtro de casa si existe)
+        const homeParam = home ? `&home=${encodeURIComponent(home)}` : '';
+        
         if (result.data.next_page) {
-            result.data.next_page = `${protocol}://${host}/v1/tickets/repairs?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`;
+            result.data.next_page = `${protocol}://${host}/v1/tickets/repairs?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}${homeParam}`;
         }
 
         if (result.data.previous_page) {
-            result.data.previous_page = `${protocol}://${host}/v1/tickets/repairs?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}`;
+            result.data.previous_page = `${protocol}://${host}/v1/tickets/repairs?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}${homeParam}`;
         }
 
         return res.status(200).json(result);
