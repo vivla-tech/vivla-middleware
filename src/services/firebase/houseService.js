@@ -135,10 +135,47 @@ export async function findZendeskNameForHouse(firebaseHouseName) {
 }
 
 /**
- * Obtiene todas las casas de la colección homes con el campo zendesk_name incluido
+ * Obtiene todas las casas de la colección homes (versión básica sin zendesk_name)
  * @returns {Promise<Object>} Objeto con status, data y count de todas las casas
  */
 export async function getAllHouses() {
+    try {
+        const homesRef = collection(db, 'homes');
+        const querySnapshot = await getDocs(homesRef);
+
+        const houses = [];
+
+        querySnapshot.forEach((doc) => {
+            const houseData = doc.data();
+            houses.push({
+                id: doc.id,
+                ...houseData
+            });
+        });
+
+        console.log(`Se encontraron ${houses.length} casas en total`);
+
+        return {
+            status: 'success',
+            data: houses,
+            count: houses.length
+        };
+
+    } catch (error) {
+        console.error('Error al obtener todas las casas:', error);
+        return {
+            status: 'error',
+            message: 'No se pudieron obtener las casas',
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Obtiene todas las casas de la colección homes con el campo zendesk_name incluido
+ * @returns {Promise<Object>} Objeto con status, data y count de todas las casas con zendesk_name
+ */
+export async function getAllHousesWithZendeskNames() {
     try {
         const homesRef = collection(db, 'homes');
         const querySnapshot = await getDocs(homesRef);
@@ -176,11 +213,55 @@ export async function getAllHouses() {
         };
 
     } catch (error) {
-        console.error('Error al obtener todas las casas:', error);
+        console.error('Error al obtener todas las casas con nombres de Zendesk:', error);
         return {
             status: 'error',
-            message: 'No se pudieron obtener las casas',
+            message: 'No se pudieron obtener las casas con nombres de Zendesk',
             error: error.message
+        };
+    }
+}
+
+/**
+ * Obtiene una casa específica por su hid
+ * @param {string} hid - ID de la casa a buscar
+ * @returns {Promise<Object>} Objeto con status, data de la casa encontrada
+ */
+export async function getHouseByHid(hid) {
+    try {
+        const homesRef = collection(db, 'homes');
+        const q = query(homesRef, where('hid', '==', hid));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return {
+                status: 'error',
+                message: `No se encontró la casa con hid: ${hid}`,
+                data: null
+            };
+        }
+
+        const doc = querySnapshot.docs[0];
+        const houseData = doc.data();
+        const house = {
+            id: doc.id,
+            ...houseData
+        };
+
+        console.log(`Casa encontrada: ${house.name} (hid: ${hid})`);
+
+        return {
+            status: 'success',
+            data: house
+        };
+
+    } catch (error) {
+        console.error('Error al obtener casa por hid:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener la casa',
+            error: error.message,
+            data: null
         };
     }
 } 
