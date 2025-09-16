@@ -220,4 +220,48 @@ export async function getAllHousesWithZendeskNames() {
             error: error.message
         };
     }
+}
+
+/**
+ * Obtiene una casa específica por su hid
+ * @param {string} hid - ID de la casa a buscar
+ * @returns {Promise<Object>} Objeto con status, data de la casa encontrada
+ */
+export async function getHouseByHid(hid) {
+    try {
+        const homesRef = collection(db, 'homes');
+        const q = query(homesRef, where('hid', '==', hid));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            return {
+                status: 'error',
+                message: `No se encontró la casa con hid: ${hid}`,
+                data: null
+            };
+        }
+
+        const doc = querySnapshot.docs[0];
+        const houseData = doc.data();
+        const house = {
+            id: doc.id,
+            ...houseData
+        };
+
+        console.log(`Casa encontrada: ${house.name} (hid: ${hid})`);
+
+        return {
+            status: 'success',
+            data: house
+        };
+
+    } catch (error) {
+        console.error('Error al obtener casa por hid:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener la casa',
+            error: error.message,
+            data: null
+        };
+    }
 } 

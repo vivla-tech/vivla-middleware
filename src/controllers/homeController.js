@@ -1,5 +1,5 @@
-import { getAllHouses, getAllHousesWithZendeskNames } from '../services/firebase/houseService.js';
-import { getDashboardProperties, mergeHouseData } from '../services/npsService.js';
+import { getAllHouses, getAllHousesWithZendeskNames, getHouseByHid, findZendeskNameForHouse } from '../services/firebase/houseService.js';
+import { getDashboardProperties, mergeHouseData, getDashboardPropertyById, mergeSingleHouseData } from '../services/npsService.js';
 
 /**
  * Obtiene el listado de todas las casas con solo los campos hid y name
@@ -134,6 +134,99 @@ export async function getHousesWithDashboardController(req, res) {
         return res.status(500).json({
             status: 'error',
             message: 'Error interno del servidor al obtener el listado de casas con datos del dashboard',
+            error: error.message
+        });
+    }
+}
+
+/**
+ * Obtiene una casa específica por su hid combinando datos de Firebase, Dashboard y Zendesk
+ */
+export async function getHouseWithDashboardByIdController(req, res) {
+    try {
+        const { hid } = req.params;
+
+        if (!hid) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'El parámetro hid es requerido'
+            });
+        }
+
+        console.log(`Obteniendo casa con hid: ${hid}...`);
+
+        // Obtener datos de Firebase y Dashboard en paralelo
+        const [firebaseResult, dashboardResult] = await Promise.all([
+            getHouseByHid(hid),
+            getDashboardPropertyById(hid)
+        ]);
+
+        // Verificar errores en Firebase
+        if (firebaseResult.status === 'error') {
+            console.error('Error al obtener datos de Firebase:', firebaseResult.message);
+            return res.status(404).json({
+                status: 'error',
+                message: 'Casa no encontrada',
+                error: firebaseResult.message
+            });
+        }
+
+        // Verificar errores en Dashboard (pero no fallar si hay error, solo logear)
+        if (dashboardResult.status === 'error') {
+            console.warn('Error al obtener datos del dashboard:', dashboardResult.message);
+        }
+
+        const firebaseHouse = firebaseResult.data;
+        const dashboardProperty = dashboardResult.data;
+
+        console.log(`Procesando casa: ${firebaseHouse.name} (hid: ${hid})`);
+
+        // Combinar los datos de Firebase y Dashboard
+        const mergedHouse = mergeSingleHouseData(firebaseHouse, dashboardProperty);
+
+        // Obtener el nombre de Zendesk para la casa
+        console.log('Obteniendo nombre de Zendesk para la casa...');
+        const zendeskName = await findZendeskNameForHouse(firebaseHouse.name);
+
+        // Crear el objeto final con todos los datos
+        const finalHouse = {
+            hid: mergedHouse.hid,
+            name: mergedHouse.name,
+            is_test_home: mergedHouse.is_test_home || false,
+            zendesk_name: zendeskName,
+            main_image: mergedHouse.main_img_path || null,
+            // Campos del dashboard
+            dashboard_name: mergedHouse.dashboard_name,
+            dashboard_id: mergedHouse.dashboard_id,
+            dashboard_foreignId: mergedHouse.dashboard_foreignId,
+            dashboard_image: mergedHouse.dashboard_image,
+            dashboard_area: mergedHouse.dashboard_area,
+            dashboard_createdAt: mergedHouse.dashboard_createdAt,
+            dashboard_updatedAt: mergedHouse.dashboard_updatedAt,
+            // Campos de estado
+            is_home_in_zendesk: zendeskName !== null,
+            is_home_in_nps_dashboard: mergedHouse.dashboard_name !== null
+        };
+
+        console.log(`Casa procesada exitosamente: ${finalHouse.name}`);
+
+        // Devolver respuesta con la casa completa
+        return res.status(200).json({
+            status: 'success',
+            message: 'Casa obtenida exitosamente',
+            data: finalHouse,
+            sources: {
+                firebase_found: true,
+                dashboard_found: dashboardProperty !== null,
+                zendesk_found: zendeskName !== null
+            }
+        });
+
+    } catch (error) {
+        console.error('Error en getHouseWithDashboardByIdController:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error interno del servidor al obtener la casa',
             error: error.message
         });
     }
