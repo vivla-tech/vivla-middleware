@@ -298,7 +298,7 @@ const CHECKPOINTS_DATA = [
     ]
   },
   {
-    "HomeName": "Son Parc I",
+    "HomeName": "Son_Parc_",
     "OwnersCheckPointCount": 3,
     "OwnersCheckPointDates": [
       "2025-03-25",
@@ -312,7 +312,7 @@ const CHECKPOINTS_DATA = [
     ]
   },
   {
-    "HomeName": "Son Parc II",
+    "HomeName": "Son_Parc_II",
     "OwnersCheckPointCount": 4,
     "OwnersCheckPointDates": [
       "2025-03-25",
@@ -372,30 +372,81 @@ export async function getCheckpointsController(req, res) {
         // Obtener la fecha actual en formato YYYY-MM-DD
         const currentDate = new Date().toISOString().split('T')[0];
         
-        // Calcular datos agregados para Owners CheckPoints
-        const allOwnersDates = CHECKPOINTS_DATA.flatMap(house => house.OwnersCheckPointDates);
+        // Obtener el parámetro de filtro por nombre de casa
+        const { homeName } = req.query;
+        
+        // Filtrar datos si se proporciona un nombre de casa
+        let filteredData = CHECKPOINTS_DATA;
+        if (homeName) {
+            const searchTerm = homeName.toLowerCase();
+            
+            // Primero buscar coincidencias exactas (case-insensitive)
+            const exactMatches = CHECKPOINTS_DATA.filter(house => 
+                house.HomeName.toLowerCase() === searchTerm
+            );
+            
+            if (exactMatches.length > 0) {
+                // Si hay coincidencias exactas, usar solo esas
+                filteredData = exactMatches;
+            } else {
+                // Si no hay coincidencias exactas, buscar coincidencias parciales
+                filteredData = CHECKPOINTS_DATA.filter(house => 
+                    house.HomeName.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // Si no se encuentra ninguna casa, devolver respuesta vacía
+            if (filteredData.length === 0) {
+                return res.status(200).json({
+                    status: 'success',
+                    data: [],
+                    count: 0,
+                    aggregated: {
+                        owners: { completed: 0, inProgress: 0, pending: 0, total: 0 },
+                        hx: { completed: 0, inProgress: 0, pending: 0, total: 0 },
+                        total: { completed: 0, inProgress: 0, pending: 0, total: 0 }
+                    },
+                    currentDate: currentDate,
+                    message: `No se encontraron casas con el nombre: ${homeName}`,
+                    filter: { homeName }
+                });
+            }
+        }
+        
+        // Calcular datos agregados para Owners CheckPoints (solo de las casas filtradas)
+        const allOwnersDates = filteredData.flatMap(house => house.OwnersCheckPointDates);
         const ownersAggregated = calculateCheckpointStatus(allOwnersDates, currentDate);
         
-        // Calcular datos agregados para HX CheckPoints
-        const allHXDates = CHECKPOINTS_DATA.flatMap(house => house.HXCheckPointDates);
+        // Calcular datos agregados para HX CheckPoints (solo de las casas filtradas)
+        const allHXDates = filteredData.flatMap(house => house.HXCheckPointDates);
         const hxAggregated = calculateCheckpointStatus(allHXDates, currentDate);
         
         // Calcular datos agregados totales (suma de ambos tipos)
         const allDates = [...allOwnersDates, ...allHXDates];
         const totalAggregated = calculateCheckpointStatus(allDates, currentDate);
         
-        return res.status(200).json({
+        // Preparar respuesta
+        const response = {
             status: 'success',
-            data: CHECKPOINTS_DATA,
-            count: CHECKPOINTS_DATA.length,
+            data: filteredData,
+            count: filteredData.length,
             aggregated: {
                 owners: ownersAggregated,
                 hx: hxAggregated,
                 total: totalAggregated
             },
             currentDate: currentDate,
-            message: 'CheckPoints de las casas obtenidos exitosamente'
-        });
+            message: homeName 
+                ? `CheckPoints de las casas filtradas por nombre "${homeName}" obtenidos exitosamente`
+                : 'CheckPoints de las casas obtenidos exitosamente'
+        };
+        
+        // Agregar información del filtro si se aplicó
+        if (homeName) {
+            response.filter = { homeName };
+        }
+        
+        return res.status(200).json(response);
     } catch (error) {
         console.error('Error en el controlador de checkPoints:', error);
         return res.status(500).json({
