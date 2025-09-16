@@ -8,7 +8,15 @@ const router = express.Router();
  * /checkpoints:
  *   get:
  *     summary: Obtener checkPoints de las casas
- *     description: Obtiene la información de checkPoints de todas las casas, incluyendo checkPoints de propietarios y Home Excellence con sus respectivas fechas. También incluye datos agregados calculados basándose en la fecha actual (completados, en curso, pendientes y totales).
+ *     description: Obtiene la información de checkPoints de todas las casas, incluyendo checkPoints de propietarios y Home Excellence con sus respectivas fechas. También incluye datos agregados calculados basándose en la fecha actual (completados, en curso, pendientes y totales). Opcionalmente se puede filtrar por nombre de casa usando el query parameter homeName.
+ *     parameters:
+ *       - in: query
+ *         name: homeName
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Nombre de la casa para filtrar los resultados. Primero busca coincidencias exactas (case-insensitive), si no encuentra ninguna, busca coincidencias parciales.
+ *         example: "Saona"
  *     responses:
  *       200:
  *         description: CheckPoints obtenidos exitosamente
@@ -127,6 +135,14 @@ const router = express.Router();
  *                 message:
  *                   type: string
  *                   example: "CheckPoints de las casas obtenidos exitosamente"
+ *                 filter:
+ *                   type: object
+ *                   description: Información del filtro aplicado (solo presente cuando se usa homeName)
+ *                   properties:
+ *                     homeName:
+ *                       type: string
+ *                       description: Nombre de casa usado para filtrar
+ *                       example: "Saona"
  *       500:
  *         description: Error interno del servidor
  */
