@@ -44,7 +44,7 @@ export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'crea
 }
 
 // Obtener tickets filtrados por custom_status usando la API de búsqueda
-export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null) {
     const HOME_FIELD_ID = 17925940459804;
     
     let query = `custom_status_id:${customStatusId}`;
@@ -52,6 +52,18 @@ export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, 
     // Si se proporciona un nombre de casa, agregar el filtro
     if (homeName) {
         query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_status_id:${customStatusId}`;
+    }
+    
+    // Si se proporciona una fecha from, agregar el filtro de created_at
+    if (fromDate) {
+        // Validar formato de fecha (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(fromDate)) {
+            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
+        }
+        
+        // Añadir filtro de fecha al query
+        query += ` created_at>=${fromDate}`;
     }
     
     const encodedQuery = encodeURIComponent(query);
