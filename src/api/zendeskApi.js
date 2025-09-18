@@ -77,7 +77,7 @@ export async function getZendeskTicketsByCustomStatus(customStatusId, page = 1, 
 }
 
 // Obtener tickets de reparaciones filtrados por custom field
-export async function getZendeskRepairTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+export async function getZendeskRepairTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null) {
     const HOME_FIELD_ID = 17925940459804;
     const REPAIR_FIELD_ID = 17926767041308;
     
@@ -88,8 +88,23 @@ export async function getZendeskRepairTickets(page = 1, per_page = 25, sort_by =
         query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} custom_field_${REPAIR_FIELD_ID}:*`;
     }
     
+    // Si se proporciona una fecha from, agregar el filtro de created_at
+    if (fromDate) {
+        // Validar formato de fecha (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(fromDate)) {
+            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
+        }
+        
+        // Añadir filtro de fecha al query
+        query += ` created_at>=${fromDate}`;
+    }
+    
     const encodedQuery = encodeURIComponent(query);
     const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
+    
+    console.log('Repair tickets query:', query);
+    console.log('Repair tickets encoded query:', encodedQuery);
     
     return fetchZendeskData(endpoint);
 }
