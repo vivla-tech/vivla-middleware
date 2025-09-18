@@ -3,21 +3,37 @@ import { db } from '../config/firebase.js';
 
 /**
  * Configuración de fechas de inspección por tipo de casa
+ * Formato: mes-día (MM-DD) - el año se ajustará dinámicamente
  */
 const INSPECTION_DATES_CONFIG = {
     beach: [
-        { date: '2025-06-01', description: 'Inspección de verano' },
-        { date: '2025-12-01', description: 'Inspección de invierno' }
+        { monthDay: '06-01', description: 'Inspección de verano' },
+        { monthDay: '12-01', description: 'Inspección de invierno' }
     ],
     ski: [
-        { date: '2025-11-01', description: 'Inspección pre-temporada' },
-        { date: '2025-04-01', description: 'Inspección post-temporada' }
+        { monthDay: '11-01', description: 'Inspección pre-temporada' },
+        { monthDay: '04-01', description: 'Inspección post-temporada' }
     ],
     city: [
-        { date: '2025-02-01', description: 'Inspección pre-temporada' },
-        { date: '2025-08-01', description: 'Inspección post-temporada' }
+        { monthDay: '02-01', description: 'Inspección pre-temporada' },
+        { monthDay: '08-01', description: 'Inspección post-temporada' }
     ]
 };
+
+/**
+ * Genera fechas de inspección dinámicas basándose en el año actual
+ * @param {string} currentDate - Fecha actual en formato YYYY-MM-DD
+ * @param {Array} inspectionConfig - Configuración de inspecciones para un tipo de casa
+ * @returns {Array} Array de objetos con fechas completas para el año actual
+ */
+function generateDynamicInspectionDates(currentDate, inspectionConfig) {
+    const currentYear = new Date(currentDate).getFullYear();
+    
+    return inspectionConfig.map(inspection => ({
+        date: `${currentYear}-${inspection.monthDay}`,
+        description: inspection.description
+    }));
+}
 
 /**
  * Clasifica una fecha como past, now o future basándose en la fecha actual
@@ -59,9 +75,11 @@ function calculateGlobalStats(currentDate) {
     
     // Iterar sobre todos los tipos de casa y sus fechas
     Object.keys(INSPECTION_DATES_CONFIG).forEach(houseType => {
-        const dates = INSPECTION_DATES_CONFIG[houseType];
+        const inspectionConfig = INSPECTION_DATES_CONFIG[houseType];
+        // Generar fechas dinámicas para el año actual
+        const dynamicDates = generateDynamicInspectionDates(currentDate, inspectionConfig);
         
-        dates.forEach(inspection => {
+        dynamicDates.forEach(inspection => {
             totalDates++;
             const classification = classifyDate(inspection.date, currentDate);
             
@@ -134,11 +152,11 @@ export async function getInspectionDates(hid) {
             };
         }
 
-        // Obtener fechas de inspección para el tipo de casa
-        const inspectionDates = INSPECTION_DATES_CONFIG[homeType];
+        // Obtener configuración de inspecciones para el tipo de casa
+        const inspectionConfig = INSPECTION_DATES_CONFIG[homeType];
 
         // Si no hay fechas configuradas para este tipo
-        if (!inspectionDates || inspectionDates.length === 0) {
+        if (!inspectionConfig || inspectionConfig.length === 0) {
             // Calcular estadísticas globales incluso si esta casa no tiene fechas
             const currentDate = new Date().toISOString().split('T')[0];
             const globalStats = calculateGlobalStats(currentDate);
@@ -162,6 +180,9 @@ export async function getInspectionDates(hid) {
 
         // Obtener fecha actual
         const currentDate = new Date().toISOString().split('T')[0];
+
+        // Generar fechas dinámicas para el año actual
+        const inspectionDates = generateDynamicInspectionDates(currentDate, inspectionConfig);
 
         // Clasificar fechas
         const past = [];
