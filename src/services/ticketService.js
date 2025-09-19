@@ -1,4 +1,4 @@
-import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskRepairTickets, getZendeskHomeRepairTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
+import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskRepairTickets, getZendeskHomeRepairTickets, getZendeskUniqueHomes, getZendeskTicketsForHome, getAllZendeskTicketsForStats } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 export async function getTicketById(ticketId) {
@@ -236,6 +236,61 @@ export async function getTicketsStats() {
         return {
             status: 'error',
             message: 'Error al obtener estadísticas de homes',
+            error: error.message
+        };
+    }
+}
+
+export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
+    try {
+        console.log(`Obteniendo estadísticas simples de tickets - Casa: ${homeName || 'Todas'}, Desde: ${fromDate || 'Sin filtro'}`);
+        
+        // Obtener todos los tickets con los filtros aplicados
+        const response = await getAllZendeskTicketsForStats(homeName, fromDate);
+        const tickets = response.tickets;
+        
+        // Contadores para las estadísticas
+        let totalTickets = tickets.length;
+        let resolvedTickets = 0;
+        let inProgressTickets = 0;
+        
+        // Estados que consideramos como "resueltos"
+        const resolvedStatuses = ['solved', 'closed'];
+        
+        // Procesar cada ticket para clasificar por estado
+        tickets.forEach(ticket => {
+            if (resolvedStatuses.includes(ticket.status)) {
+                resolvedTickets++;
+            } else {
+                inProgressTickets++;
+            }
+        });
+        
+        console.log(`Estadísticas calculadas - Total: ${totalTickets}, Resueltos: ${resolvedTickets}, En progreso: ${inProgressTickets}`);
+        
+        return {
+            status: 'success',
+            data: {
+                totalTickets,
+                resolvedTickets,
+                inProgressTickets,
+                filters: {
+                    home: homeName || null,
+                    from: fromDate || null
+                },
+                percentages: {
+                    resolved: totalTickets > 0 ? Math.round((resolvedTickets / totalTickets) * 100 * 10) / 10 : 0,
+                    inProgress: totalTickets > 0 ? Math.round((inProgressTickets / totalTickets) * 100 * 10) / 10 : 0
+                }
+            },
+            message: 'Estadísticas simples de tickets obtenidas exitosamente'
+        };
+        
+    } catch (error) {
+        console.error('Error al obtener estadísticas simples de tickets:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener estadísticas simples de tickets',
             error: error.message
         };
     }

@@ -1,4 +1,4 @@
-import { getTicketById, getTickets, getImprovementProposalTickets, getRepairTickets, getHomeRepairStats, getTicketsStats } from '../services/ticketService.js';
+import { getTicketById, getTickets, getImprovementProposalTickets, getRepairTickets, getHomeRepairStats, getTicketsStats, getTicketsSimpleStats } from '../services/ticketService.js';
 
 export async function getTicketByIdController(req, res) {
     try {
@@ -187,6 +187,26 @@ export async function getTicketsStatsController(req, res) {
         return res.status(500).json({
             status: 'error',
             message: 'Error interno del servidor',
+            error: error.message
+        });
+    }
+}
+
+export async function getTicketsSimpleStatsController(req, res) {
+    try {
+        const { home, from } = req.query;
+        const result = await getTicketsSimpleStats(home, from);
+
+        if (result.status === 'error') {
+            return res.status(500).json(result);
+        }
+
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error('Error en el controlador de estadísticas simples de tickets:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error interno del servidor al obtener estadísticas simples',
             error: error.message
         });
     }

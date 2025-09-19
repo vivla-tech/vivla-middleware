@@ -147,6 +147,93 @@ export async function getZendeskHomeRepairTickets(homeName) {
     return fetchZendeskData(endpoint);
 }
 
+// Obtener todos los tickets para estadísticas (manejando paginación automáticamente)
+export async function getAllZendeskTicketsForStats(homeName = null, fromDate = null) {
+    const HOME_FIELD_ID = 17925940459804;
+    
+    // Validar formato de fecha si se proporciona
+    if (fromDate) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(fromDate)) {
+            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
+        }
+    }
+    
+    let allTickets = [];
+    let page = 1;
+    let hasMorePages = true;
+    const per_page = 100; // Usar el máximo permitido por Zendesk para eficiencia
+    
+    console.log('Obteniendo todos los tickets para estadísticas...');
+    
+    while (hasMorePages) {
+        let response;
+        
+        // Si hay filtros, usar la API de búsqueda
+        if (homeName || fromDate) {
+            let queryParts = [];
+            
+            if (homeName) {
+                queryParts.push(`custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)}`);
+            }
+            
+            if (fromDate) {
+                queryParts.push(`created_at>=${fromDate}`);
+            }
+            
+            const query = queryParts.join(' ');
+            const encodedQuery = encodeURIComponent(query);
+            const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&include=users`;
+            
+            console.log(`Página ${page}: Query = "${query}"`);
+            response = await fetchZendeskData(endpoint);
+            
+            // En la API de búsqueda, los tickets están en 'results'
+            if (response.results && response.results.length > 0) {
+                allTickets = allTickets.concat(response.results);
+                console.log(`Página ${page}: ${response.results.length} tickets obtenidos. Total acumulado: ${allTickets.length}`);
+                
+                // Verificar si hay más páginas
+                hasMorePages = response.results.length === per_page;
+                page++;
+            } else {
+                hasMorePages = false;
+            }
+        } else {
+            // Sin filtros, usar la API estándar
+            const endpoint = `/tickets.json?page=${page}&per_page=${per_page}&include=users`;
+            
+            console.log(`Página ${page}: Sin filtros, usando API estándar`);
+            response = await fetchZendeskData(endpoint);
+            
+            // En la API estándar, los tickets están en 'tickets'
+            if (response.tickets && response.tickets.length > 0) {
+                allTickets = allTickets.concat(response.tickets);
+                console.log(`Página ${page}: ${response.tickets.length} tickets obtenidos. Total acumulado: ${allTickets.length}`);
+                
+                // Verificar si hay más páginas
+                hasMorePages = response.tickets.length === per_page;
+                page++;
+            } else {
+                hasMorePages = false;
+            }
+        }
+        
+        // Seguridad: evitar bucles infinitos
+        if (page > 1000) {
+            console.warn('Se alcanzó el límite de 1000 páginas. Deteniendo la consulta.');
+            break;
+        }
+    }
+    
+    console.log(`Consulta completada. Total de tickets obtenidos: ${allTickets.length}`);
+    
+    return {
+        tickets: allTickets,
+        count: allTickets.length
+    };
+}
+
 // Funciones para obtener estadísticas de tickets
 export async function getZendeskUniqueHomes() {
     return homeStatsHelpers.getUniqueHomes();
