@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTicketByIdController, getTicketsController, getImprovementProposalTicketsController, getRepairTicketsController, getHomeRepairStatsController, getTicketsStatsController } from '../controllers/ticketController.js';
+import { getTicketByIdController, getTicketsController, getImprovementProposalTicketsController, getRepairTicketsController, getHomeRepairStatsController, getTicketsStatsController, getTicketsSimpleStatsController } from '../controllers/ticketController.js';
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ const router = express.Router();
  * /tickets:
  *   get:
  *     summary: Obtener lista de tickets
- *     description: Obtiene una lista paginada de tickets con opciones de ordenamiento. Opcionalmente puede filtrar por casa específica.
+ *     description: Obtiene una lista paginada de tickets con opciones de ordenamiento. Opcionalmente puede filtrar por casa específica, fecha de creación y estado.
  *     parameters:
  *       - in: query
  *         name: page
@@ -41,6 +41,19 @@ const router = express.Router();
  *           type: string
  *         description: Nombre de la casa para filtrar (opcional)
  *         example: "Casa Ejemplo"
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha desde la cual filtrar tickets (formato YYYY-MM-DD). Solo se incluirán tickets creados en o después de esta fecha.
+ *         example: "2024-01-01"
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: Estado del ticket para filtrar. Solo se incluirán tickets con este estado específico.
+ *         example: "open"
  *     responses:
  *       200:
  *         description: Lista de tickets obtenida exitosamente
@@ -89,6 +102,124 @@ router.get('/', getTicketsController);
  *         description: Error interno del servidor
  */
 router.get('/stats', getTicketsStatsController);
+
+/**
+ * @swagger
+ * /v1/tickets/simple-stats:
+ *   get:
+ *     summary: Obtener estadísticas simples de tickets
+ *     description: Obtiene estadísticas básicas de tickets clasificados por estado (resueltos vs en progreso), incluyendo conteos por categoría y área de incidencia. Opcionalmente puede filtrar por casa específica y fecha de creación. Maneja automáticamente la paginación de Zendesk para obtener totales reales.
+ *     parameters:
+ *       - in: query
+ *         name: home
+ *         schema:
+ *           type: string
+ *         description: Nombre de la casa para filtrar (opcional)
+ *         example: "Casa Ejemplo"
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha desde la cual filtrar tickets (formato YYYY-MM-DD). Solo se incluirán tickets creados en o después de esta fecha.
+ *         example: "2024-01-01"
+ *     responses:
+ *       200:
+ *         description: Estadísticas simples obtenidas exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Estadísticas simples de tickets obtenidas exitosamente
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalTickets:
+ *                       type: integer
+ *                       description: Total de tickets
+ *                       example: 150
+ *                     resolvedTickets:
+ *                       type: integer
+ *                       description: Tickets resueltos (status = solved o closed)
+ *                       example: 120
+ *                     inProgressTickets:
+ *                       type: integer
+ *                       description: Tickets en progreso (todos los demás estados)
+ *                       example: 30
+ *                     filters:
+ *                       type: object
+ *                       properties:
+ *                         home:
+ *                           type: string
+ *                           nullable: true
+ *                           description: Filtro de casa aplicado
+ *                           example: "Casa Ejemplo"
+ *                         from:
+ *                           type: string
+ *                           nullable: true
+ *                           format: date
+ *                           description: Filtro de fecha aplicado
+ *                           example: "2024-01-01"
+ *                     percentages:
+ *                       type: object
+ *                       properties:
+ *                         resolved:
+ *                           type: number
+ *                           description: Porcentaje de tickets resueltos
+ *                           example: 80.0
+ *                         inProgress:
+ *                           type: number
+ *                           description: Porcentaje de tickets en progreso
+ *                           example: 20.0
+ *                     categoryStats:
+ *                       type: array
+ *                       description: Estadísticas de categorías ordenadas de mayor a menor
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           category:
+ *                             type: string
+ *                             description: Nombre de la categoría
+ *                             example: "Technical Support"
+ *                           count:
+ *                             type: integer
+ *                             description: Número de tickets en esta categoría
+ *                             example: 45
+ *                     incidenceAreaStats:
+ *                       type: array
+ *                       description: Estadísticas de áreas de incidencia ordenadas de mayor a menor
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           incidence_area:
+ *                             type: string
+ *                             description: Nombre del área de incidencia
+ *                             example: "Kitchen"
+ *                           count:
+ *                             type: integer
+ *                             description: Número de tickets en esta área
+ *                             example: 38
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Error interno del servidor al obtener estadísticas simples
+ */
+router.get('/simple-stats', getTicketsSimpleStatsController);
 
 /**
  * @swagger
