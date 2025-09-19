@@ -245,6 +245,17 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
     try {
         console.log(`Obteniendo estadísticas simples de tickets - Casa: ${homeName || 'Todas'}, Desde: ${fromDate || 'Sin filtro'}`);
         
+        // IDs de los custom fields
+        const INCIDENCE_AREA_FIELD_ID = 17926529031708;
+        const CATEGORY_FIELD_ID = 17926673594140;
+        
+        // Función auxiliar para obtener valor de custom field
+        const getCustomFieldValue = (ticket, fieldId) => {
+            if (!ticket.custom_fields) return null;
+            const field = ticket.custom_fields.find(cf => cf.id === fieldId);
+            return field ? field.value : null;
+        };
+        
         // Obtener todos los tickets con los filtros aplicados
         const response = await getAllZendeskTicketsForStats(homeName, fromDate);
         const tickets = response.tickets;
@@ -257,16 +268,43 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
         // Estados que consideramos como "resueltos"
         const resolvedStatuses = ['solved', 'closed'];
         
-        // Procesar cada ticket para clasificar por estado
+        // Contadores para categorías y áreas de incidencia
+        const categoryCount = {};
+        const incidenceAreaCount = {};
+        
+        // Procesar cada ticket para clasificar por estado y contar categorías/áreas
         tickets.forEach(ticket => {
+            // Clasificar por estado
             if (resolvedStatuses.includes(ticket.status)) {
                 resolvedTickets++;
             } else {
                 inProgressTickets++;
             }
+            
+            // Contar categorías (solo si no es null/undefined/empty)
+            const categoryValue = getCustomFieldValue(ticket, CATEGORY_FIELD_ID);
+            if (categoryValue && categoryValue.trim() !== '') {
+                categoryCount[categoryValue] = (categoryCount[categoryValue] || 0) + 1;
+            }
+            
+            // Contar áreas de incidencia (solo si no es null/undefined/empty)
+            const incidenceAreaValue = getCustomFieldValue(ticket, INCIDENCE_AREA_FIELD_ID);
+            if (incidenceAreaValue && incidenceAreaValue.trim() !== '') {
+                incidenceAreaCount[incidenceAreaValue] = (incidenceAreaCount[incidenceAreaValue] || 0) + 1;
+            }
         });
         
+        // Convertir contadores a arrays ordenados de mayor a menor
+        const categoryStats = Object.entries(categoryCount)
+            .map(([category, count]) => ({ category, count }))
+            .sort((a, b) => b.count - a.count);
+            
+        const incidenceAreaStats = Object.entries(incidenceAreaCount)
+            .map(([incidence_area, count]) => ({ incidence_area, count }))
+            .sort((a, b) => b.count - a.count);
+        
         console.log(`Estadísticas calculadas - Total: ${totalTickets}, Resueltos: ${resolvedTickets}, En progreso: ${inProgressTickets}`);
+        console.log(`Categorías encontradas: ${categoryStats.length}, Áreas de incidencia: ${incidenceAreaStats.length}`);
         
         return {
             status: 'success',
@@ -281,7 +319,9 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
                 percentages: {
                     resolved: totalTickets > 0 ? Math.round((resolvedTickets / totalTickets) * 100 * 10) / 10 : 0,
                     inProgress: totalTickets > 0 ? Math.round((inProgressTickets / totalTickets) * 100 * 10) / 10 : 0
-                }
+                },
+                categoryStats,
+                incidenceAreaStats
             },
             message: 'Estadísticas simples de tickets obtenidas exitosamente'
         };

@@ -108,7 +108,7 @@ router.get('/stats', getTicketsStatsController);
  * /v1/tickets/simple-stats:
  *   get:
  *     summary: Obtener estadísticas simples de tickets
- *     description: Obtiene estadísticas básicas de tickets clasificados por estado (resueltos vs en progreso). Opcionalmente puede filtrar por casa específica y fecha de creación. Maneja automáticamente la paginación de Zendesk para obtener totales reales.
+ *     description: Obtiene estadísticas básicas de tickets clasificados por estado (resueltos vs en progreso), incluyendo conteos por categoría y área de incidencia. Opcionalmente puede filtrar por casa específica y fecha de creación. Maneja automáticamente la paginación de Zendesk para obtener totales reales.
  *     parameters:
  *       - in: query
  *         name: home
@@ -177,6 +177,34 @@ router.get('/stats', getTicketsStatsController);
  *                           type: number
  *                           description: Porcentaje de tickets en progreso
  *                           example: 20.0
+ *                     categoryStats:
+ *                       type: array
+ *                       description: Estadísticas de categorías ordenadas de mayor a menor
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           category:
+ *                             type: string
+ *                             description: Nombre de la categoría
+ *                             example: "Technical Support"
+ *                           count:
+ *                             type: integer
+ *                             description: Número de tickets en esta categoría
+ *                             example: 45
+ *                     incidenceAreaStats:
+ *                       type: array
+ *                       description: Estadísticas de áreas de incidencia ordenadas de mayor a menor
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           incidence_area:
+ *                             type: string
+ *                             description: Nombre del área de incidencia
+ *                             example: "Kitchen"
+ *                           count:
+ *                             type: integer
+ *                             description: Número de tickets en esta área
+ *                             example: 38
  *       500:
  *         description: Error interno del servidor
  *         content:
