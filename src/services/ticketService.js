@@ -272,10 +272,16 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
         const categoryCount = {};
         const incidenceAreaCount = {};
         
+        // Contadores de categorías por estado
+        const categoryCountResolved = {};
+        const categoryCountInProgress = {};
+        
         // Procesar cada ticket para clasificar por estado y contar categorías/áreas
         tickets.forEach(ticket => {
+            const isResolved = resolvedStatuses.includes(ticket.status);
+            
             // Clasificar por estado
-            if (resolvedStatuses.includes(ticket.status)) {
+            if (isResolved) {
                 resolvedTickets++;
             } else {
                 inProgressTickets++;
@@ -284,7 +290,15 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
             // Contar categorías (solo si no es null/undefined/empty)
             const categoryValue = getCustomFieldValue(ticket, CATEGORY_FIELD_ID);
             if (categoryValue && categoryValue.trim() !== '') {
+                // Conteo total
                 categoryCount[categoryValue] = (categoryCount[categoryValue] || 0) + 1;
+                
+                // Conteo por estado
+                if (isResolved) {
+                    categoryCountResolved[categoryValue] = (categoryCountResolved[categoryValue] || 0) + 1;
+                } else {
+                    categoryCountInProgress[categoryValue] = (categoryCountInProgress[categoryValue] || 0) + 1;
+                }
             }
             
             // Contar áreas de incidencia (solo si no es null/undefined/empty)
@@ -302,9 +316,23 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
         const incidenceAreaStats = Object.entries(incidenceAreaCount)
             .map(([incidence_area, count]) => ({ incidence_area, count }))
             .sort((a, b) => b.count - a.count);
+            
+        // Función auxiliar para obtener top 3 categorías
+        const getTop3Categories = (categoryCountObj) => {
+            return Object.entries(categoryCountObj)
+                .map(([category, count]) => ({ category, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 3);
+        };
+        
+        // Top 3 categorías por grupo
+        const top3CategoriesTotal = getTop3Categories(categoryCount);
+        const top3CategoriesResolved = getTop3Categories(categoryCountResolved);
+        const top3CategoriesInProgress = getTop3Categories(categoryCountInProgress);
         
         console.log(`Estadísticas calculadas - Total: ${totalTickets}, Resueltos: ${resolvedTickets}, En progreso: ${inProgressTickets}`);
         console.log(`Categorías encontradas: ${categoryStats.length}, Áreas de incidencia: ${incidenceAreaStats.length}`);
+        console.log(`Top 3 categorías - Total: ${top3CategoriesTotal.length}, Resueltos: ${top3CategoriesResolved.length}, En progreso: ${top3CategoriesInProgress.length}`);
         
         return {
             status: 'success',
@@ -321,7 +349,12 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
                     inProgress: totalTickets > 0 ? Math.round((inProgressTickets / totalTickets) * 100 * 10) / 10 : 0
                 },
                 categoryStats,
-                incidenceAreaStats
+                incidenceAreaStats,
+                top3Categories: {
+                    total: top3CategoriesTotal,
+                    resolved: top3CategoriesResolved,
+                    inProgress: top3CategoriesInProgress
+                }
             },
             message: 'Estadísticas simples de tickets obtenidas exitosamente'
         };

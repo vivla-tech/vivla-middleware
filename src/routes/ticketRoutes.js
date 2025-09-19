@@ -108,7 +108,7 @@ router.get('/stats', getTicketsStatsController);
  * /v1/tickets/simple-stats:
  *   get:
  *     summary: Obtener estadísticas simples de tickets
- *     description: Obtiene estadísticas básicas de tickets clasificados por estado (resueltos vs en progreso), incluyendo conteos por categoría y área de incidencia. Opcionalmente puede filtrar por casa específica y fecha de creación. Maneja automáticamente la paginación de Zendesk para obtener totales reales.
+ *     description: Obtiene estadísticas básicas de tickets clasificados por estado (resueltos vs en progreso), incluyendo conteos por categoría y área de incidencia, y las top 3 categorías más frecuentes por cada grupo. Opcionalmente puede filtrar por casa específica y fecha de creación. Maneja automáticamente la paginación de Zendesk para obtener totales reales.
  *     parameters:
  *       - in: query
  *         name: home
@@ -205,6 +205,46 @@ router.get('/stats', getTicketsStatsController);
  *                             type: integer
  *                             description: Número de tickets en esta área
  *                             example: 38
+ *                     top3Categories:
+ *                       type: object
+ *                       description: Top 3 categorías más frecuentes por grupo
+ *                       properties:
+ *                         total:
+ *                           type: array
+ *                           description: Top 3 categorías en todos los tickets
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               category:
+ *                                 type: string
+ *                                 example: "Technical Support"
+ *                               count:
+ *                                 type: integer
+ *                                 example: 45
+ *                         resolved:
+ *                           type: array
+ *                           description: Top 3 categorías en tickets resueltos
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               category:
+ *                                 type: string
+ *                                 example: "Bug Report"
+ *                               count:
+ *                                 type: integer
+ *                                 example: 32
+ *                         inProgress:
+ *                           type: array
+ *                           description: Top 3 categorías en tickets en progreso
+ *                           items:
+ *                             type: object
+ *                             properties:
+ *                               category:
+ *                                 type: string
+ *                                 example: "Feature Request"
+ *                               count:
+ *                                 type: integer
+ *                                 example: 18
  *       500:
  *         description: Error interno del servidor
  *         content:
