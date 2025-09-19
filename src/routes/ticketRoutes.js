@@ -8,7 +8,7 @@ const router = express.Router();
  * /tickets:
  *   get:
  *     summary: Obtener lista de tickets
- *     description: Obtiene una lista paginada de tickets con opciones de ordenamiento. Opcionalmente puede filtrar por casa específica.
+ *     description: Obtiene una lista paginada de tickets con opciones de ordenamiento. Opcionalmente puede filtrar por casa específica y por fecha de creación.
  *     parameters:
  *       - in: query
  *         name: page
@@ -41,6 +41,13 @@ const router = express.Router();
  *           type: string
  *         description: Nombre de la casa para filtrar (opcional)
  *         example: "Casa Ejemplo"
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha desde la cual filtrar tickets (formato YYYY-MM-DD). Solo se incluirán tickets creados en o después de esta fecha.
+ *         example: "2024-01-01"
  *     responses:
  *       200:
  *         description: Lista de tickets obtenida exitosamente

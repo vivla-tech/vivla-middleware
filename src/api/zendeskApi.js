@@ -23,22 +23,41 @@ export async function getZendeskTicketById(ticketId) {
 }
 
 // Obtener lista de tickets con paginación
-export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null) {
+export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null) {
     const HOME_FIELD_ID = 17925940459804;
     
-    if (homeName) {
-        // Si se proporciona un nombre de casa, usar la API de búsqueda con filtro
-        const query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)}`;
+    // Si hay filtro de fecha, necesitamos usar la API de búsqueda
+    if (fromDate) {
+        // Validar formato de fecha (YYYY-MM-DD)
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(fromDate)) {
+            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
+        }
+    }
+    
+    if (homeName || fromDate) {
+        // Si se proporciona filtro de casa o fecha, usar la API de búsqueda
+        let query = '';
+        
+        // Construir query según los filtros disponibles
+        if (homeName && fromDate) {
+            query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} created_at>=${fromDate}`;
+        } else if (homeName) {
+            query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)}`;
+        } else if (fromDate) {
+            query = `created_at>=${fromDate}`;
+        }
+        
         const encodedQuery = encodeURIComponent(query);
         const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
         
+        console.log('Tickets query:', query);
+        console.log('Tickets encoded query:', encodedQuery);
         console.log('URL completa:', `${zendeskConfig.url}${endpoint}`);
-        console.log('Query:', query);
-        console.log('Query codificada:', encodedQuery);
         
         return fetchZendeskData(endpoint);
     } else {
-        // Sin filtro de casa, usar la API estándar de tickets
+        // Sin filtros, usar la API estándar de tickets
         return fetchZendeskData(`/tickets.json?page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`);
     }
 }

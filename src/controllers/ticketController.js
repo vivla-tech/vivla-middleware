@@ -35,8 +35,8 @@ export async function getTicketByIdController(req, res) {
 
 export async function getTicketsController(req, res) {
     try {
-        const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', home } = req.query;
-        const result = await getTickets(page, per_page, sort_by, sort_order, home);
+        const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', home, from } = req.query;
+        const result = await getTickets(page, per_page, sort_by, sort_order, home, from);
 
         if (result.status === 'error') {
             return res.status(500).json(result);
@@ -46,15 +46,17 @@ export async function getTicketsController(req, res) {
         const protocol = req.protocol;
         const host = req.get('host');
 
-        // Construir URLs completas para la paginación (incluyendo el filtro de casa si existe)
+        // Construir URLs completas para la paginación (incluyendo filtros si existen)
         const homeParam = home ? `&home=${encodeURIComponent(home)}` : '';
+        const fromParam = from ? `&from=${encodeURIComponent(from)}` : '';
+        const queryParams = `${homeParam}${fromParam}`;
         
         if (result.data.next_page) {
-            result.data.next_page = `${protocol}://${host}/api/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}${homeParam}`;
+            result.data.next_page = `${protocol}://${host}/v1/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}${queryParams}`;
         }
 
         if (result.data.previous_page) {
-            result.data.previous_page = `${protocol}://${host}/api/tickets?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}${homeParam}`;
+            result.data.previous_page = `${protocol}://${host}/v1/tickets?page=${parseInt(page) - 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}${queryParams}`;
         }
 
         return res.status(200).json(result);
