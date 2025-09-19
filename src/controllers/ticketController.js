@@ -35,8 +35,8 @@ export async function getTicketByIdController(req, res) {
 
 export async function getTicketsController(req, res) {
     try {
-        const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', home, from } = req.query;
-        const result = await getTickets(page, per_page, sort_by, sort_order, home, from);
+        const { page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', home, from, status } = req.query;
+        const result = await getTickets(page, per_page, sort_by, sort_order, home, from, status);
 
         if (result.status === 'error') {
             return res.status(500).json(result);
@@ -49,7 +49,8 @@ export async function getTicketsController(req, res) {
         // Construir URLs completas para la paginación (incluyendo filtros si existen)
         const homeParam = home ? `&home=${encodeURIComponent(home)}` : '';
         const fromParam = from ? `&from=${encodeURIComponent(from)}` : '';
-        const queryParams = `${homeParam}${fromParam}`;
+        const statusParam = status ? `&status=${encodeURIComponent(status)}` : '';
+        const queryParams = `${homeParam}${fromParam}${statusParam}`;
         
         if (result.data.next_page) {
             result.data.next_page = `${protocol}://${host}/v1/tickets?page=${parseInt(page) + 1}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}${queryParams}`;

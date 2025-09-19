@@ -35,9 +35,9 @@ export async function getTicketById(ticketId) {
     }
 }
 
-export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null) {
+export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null, status = null) {
     try {
-        const response = await getZendeskTickets(page, per_page, sort_by, sort_order, homeName, fromDate);
+        const response = await getZendeskTickets(page, per_page, sort_by, sort_order, homeName, fromDate, status);
 
         // Precargar todos los datos necesarios en paralelo
         await Promise.all([

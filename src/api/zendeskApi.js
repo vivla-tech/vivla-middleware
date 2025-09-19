@@ -23,7 +23,7 @@ export async function getZendeskTicketById(ticketId) {
 }
 
 // Obtener lista de tickets con paginación
-export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null) {
+export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null, status = null) {
     const HOME_FIELD_ID = 17925940459804;
     
     // Si hay filtro de fecha, necesitamos usar la API de búsqueda
@@ -35,18 +35,26 @@ export async function getZendeskTickets(page = 1, per_page = 25, sort_by = 'crea
         }
     }
     
-    if (homeName || fromDate) {
-        // Si se proporciona filtro de casa o fecha, usar la API de búsqueda
+    // Si hay cualquier filtro, usar la API de búsqueda
+    if (homeName || fromDate || status) {
         let query = '';
+        let queryParts = [];
         
-        // Construir query según los filtros disponibles
-        if (homeName && fromDate) {
-            query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)} created_at>=${fromDate}`;
-        } else if (homeName) {
-            query = `custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)}`;
-        } else if (fromDate) {
-            query = `created_at>=${fromDate}`;
+        // Construir partes del query según los filtros disponibles
+        if (homeName) {
+            queryParts.push(`custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)}`);
         }
+        
+        if (fromDate) {
+            queryParts.push(`created_at>=${fromDate}`);
+        }
+        
+        if (status) {
+            queryParts.push(`status:${status}`);
+        }
+        
+        // Unir todas las partes con espacios
+        query = queryParts.join(' ');
         
         const encodedQuery = encodeURIComponent(query);
         const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=${sort_by}&sort_order=${sort_order}&include=users`;
