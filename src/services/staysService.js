@@ -2,6 +2,71 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase.js';
 
 /**
+ * Convierte fecha de formato DD/MM/AAAA a YYYY-MM-DD
+ * @param {string} dateStr - Fecha en formato DD/MM/AAAA
+ * @returns {string} Fecha en formato YYYY-MM-DD
+ */
+function convertDateFormat(dateStr) {
+    if (!dateStr) return null;
+    
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) return null;
+    
+    const [day, month, year] = parts;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+}
+
+/**
+ * Calcula la fecha de la última actuación (estancia completed más reciente ≤ currentDate)
+ * @param {Array} booksSnapshot - Snapshot de documentos de books
+ * @param {string} currentDate - Fecha actual en formato YYYY-MM-DD
+ * @returns {Object} Objeto con la fecha de última actuación
+ */
+function calculateLastAction(booksSnapshot, currentDate) {
+    const currentDateObj = new Date(currentDate);
+    
+    // Filtrar estancias con status 'booked' y progress 'completed'
+    const completedStays = [];
+    
+    booksSnapshot.forEach((bookDoc) => {
+        const bookData = bookDoc.data();
+        
+        if (bookData.status === 'booked' && bookData.progress === 'completed' && bookData.end_date) {
+            const endDateConverted = convertDateFormat(bookData.end_date);
+            
+            if (endDateConverted) {
+                const endDate = new Date(endDateConverted);
+                
+                // Solo incluir estancias donde end_date <= currentDate
+                if (endDate <= currentDateObj) {
+                    completedStays.push({
+                        endDate: endDateConverted,
+                        endDateObj: endDate
+                    });
+                }
+            }
+        }
+    });
+    
+    if (completedStays.length === 0) {
+        return {
+            date: null,
+            message: 'No disponible'
+        };
+    }
+    
+    // Encontrar la fecha más reciente
+    const lastAction = completedStays.reduce((latest, current) => {
+        return current.endDateObj > latest.endDateObj ? current : latest;
+    });
+    
+    return {
+        date: lastAction.endDate,
+        message: `Last action: completed stay on ${lastAction.endDate}`
+    };
+}
+
+/**
  * Obtiene estadísticas de estancias (books) para una casa específica por su hid
  * @param {string} hid - ID único de la casa
  * @returns {Promise<Object>} Objeto con estadísticas de estancias agrupadas por progress
@@ -75,6 +140,10 @@ export async function homeStaysStats(hid) {
 
         console.log(`Estadísticas calculadas: Total=${totalBookedStays}, Progress=${JSON.stringify(progressStats)}`);
 
+        // Calcular la última actuación (estancia completed más reciente ≤ currentDate)
+        const currentDate = new Date().toISOString().split('T')[0];
+        const lastAction = calculateLastAction(booksSnapshot, currentDate);
+
         return {
             status: 'success',
             data: {
@@ -82,7 +151,8 @@ export async function homeStaysStats(hid) {
                 homeName: homeData.name || null,
                 homeId: homeDocId,
                 totalBookedStays: totalBookedStays,
-                progressStats: progressStats
+                progressStats: progressStats,
+                lastAction: lastAction
             },
             message: 'Estadísticas de estancias obtenidas exitosamente'
         };
