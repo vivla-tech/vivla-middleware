@@ -363,6 +363,50 @@ function calculateCheckpointStatus(dates, currentDate) {
 }
 
 /**
+ * Calcula la fecha de la última actuación (checkpoint más reciente ≤ currentDate)
+ * @param {Array} ownersDates - Array de fechas de OwnersCheckPointDates
+ * @param {Array} hxDates - Array de fechas de HXCheckPointDates
+ * @param {string} currentDate - Fecha actual en formato YYYY-MM-DD
+ * @returns {Object} Objeto con la fecha de última actuación y tipo
+ */
+function calculateUltimaActuacion(ownersDates, hxDates, currentDate) {
+    const currentDateObj = new Date(currentDate);
+    
+    // Combinar todas las fechas con información del tipo
+    const allDatesWithType = [
+        ...ownersDates.map(date => ({ date, type: 'owners' })),
+        ...hxDates.map(date => ({ date, type: 'hx' }))
+    ];
+    
+    // Filtrar fechas que sean ≤ currentDate y convertir a objetos Date para comparación
+    const validDates = allDatesWithType
+        .map(item => ({
+            ...item,
+            dateObj: new Date(item.date)
+        }))
+        .filter(item => item.dateObj <= currentDateObj);
+    
+    if (validDates.length === 0) {
+        return {
+            date: null,
+            type: null,
+            message: 'No actions performed until current date'
+        };
+    }
+    
+    // Encontrar la fecha más reciente
+    const ultimaActuacion = validDates.reduce((latest, current) => {
+        return current.dateObj > latest.dateObj ? current : latest;
+    });
+    
+    return {
+        date: ultimaActuacion.date,
+        type: ultimaActuacion.type,
+        message: `Last action: ${ultimaActuacion.type === 'owners' ? 'Owners' : 'HX'} on ${ultimaActuacion.date}`
+    };
+}
+
+/**
  * Controlador para obtener los checkPoints de las casas
  * @param {Object} req - Request object
  * @param {Object} res - Response object
@@ -425,6 +469,9 @@ export async function getCheckpointsController(req, res) {
         const allDates = [...allOwnersDates, ...allHXDates];
         const totalAggregated = calculateCheckpointStatus(allDates, currentDate);
         
+        // Calcular la última actuación (fecha más reciente ≤ currentDate)
+        const lastAction = calculateUltimaActuacion(allOwnersDates, allHXDates, currentDate);
+        
         // Preparar respuesta
         const response = {
             status: 'success',
@@ -435,6 +482,7 @@ export async function getCheckpointsController(req, res) {
                 hx: hxAggregated,
                 total: totalAggregated
             },
+            lastAction: lastAction,
             currentDate: currentDate,
             message: homeName 
                 ? `CheckPoints de las casas filtradas por nombre "${homeName}" obtenidos exitosamente`

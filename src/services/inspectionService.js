@@ -59,6 +59,43 @@ function classifyDate(dateStr, currentDate) {
 }
 
 /**
+ * Calcula la fecha de la última actuación (inspección más reciente ≤ currentDate)
+ * @param {Array} inspectionDates - Array de fechas de inspección
+ * @param {string} currentDate - Fecha actual en formato YYYY-MM-DD
+ * @returns {Object} Objeto con la fecha de última actuación
+ */
+function calculateLastAction(inspectionDates, currentDate) {
+    const currentDateObj = new Date(currentDate);
+    
+    // Filtrar fechas que sean ≤ currentDate y convertir a objetos Date para comparación
+    const validDates = inspectionDates
+        .map(inspection => ({
+            ...inspection,
+            dateObj: new Date(inspection.date)
+        }))
+        .filter(inspection => inspection.dateObj <= currentDateObj);
+    
+    if (validDates.length === 0) {
+        return {
+            date: null,
+            description: null,
+            message: 'No actions performed until current date'
+        };
+    }
+    
+    // Encontrar la fecha más reciente
+    const lastAction = validDates.reduce((latest, current) => {
+        return current.dateObj > latest.dateObj ? current : latest;
+    });
+    
+    return {
+        date: lastAction.date,
+        description: lastAction.description,
+        message: `Last action: ${lastAction.description} on ${lastAction.date}`
+    };
+}
+
+/**
  * Calcula estadísticas globales de todas las fechas de inspección configuradas
  * @param {string} currentDate - Fecha actual en formato YYYY-MM-DD
  * @returns {Object} Objeto con estadísticas globales
@@ -160,6 +197,7 @@ export async function getInspectionDates(hid) {
             // Calcular estadísticas globales incluso si esta casa no tiene fechas
             const currentDate = new Date().toISOString().split('T')[0];
             const globalStats = calculateGlobalStats(currentDate);
+            const lastAction = calculateLastAction([], currentDate);
             
             return {
                 status: 'success',
@@ -173,7 +211,8 @@ export async function getInspectionDates(hid) {
                     now: [],
                     future: [],
                     currentDate: currentDate,
-                    globalStats: globalStats
+                    globalStats: globalStats,
+                    lastAction: lastAction
                 }
             };
         }
@@ -215,6 +254,9 @@ export async function getInspectionDates(hid) {
         const globalStats = calculateGlobalStats(currentDate);
         console.log(`Estadísticas globales: Total=${globalStats.totalDates}, Past=${globalStats.totalPast}, Now=${globalStats.totalNow}, Future=${globalStats.totalFuture}`);
 
+        // Calcular la última actuación (inspección más reciente ≤ currentDate)
+        const lastAction = calculateLastAction(inspectionDates, currentDate);
+
         return {
             status: 'success',
             data: {
@@ -226,7 +268,8 @@ export async function getInspectionDates(hid) {
                 now: now,
                 future: future,
                 currentDate: currentDate,
-                globalStats: globalStats
+                globalStats: globalStats,
+                lastAction: lastAction
             },
             message: 'Fechas de inspección obtenidas exitosamente'
         };
