@@ -1,4 +1,4 @@
-import { getZendeskTicketById, getZendeskTickets, getZendeskUniqueHomes, getZendeskTicketsForHome } from '../api/zendeskApi.js';
+import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskRepairTickets, getZendeskHomeRepairTickets, getZendeskUniqueHomes, getZendeskTicketsForHome, getAllZendeskTicketsForStats } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 export async function getTicketById(ticketId) {
@@ -14,7 +14,12 @@ export async function getTicketById(ticketId) {
             };
         }
 
-        await homeStatsHelpers.loadUserNames([ticket]);
+        // Precargar datos necesarios
+        await Promise.all([
+            homeStatsHelpers.loadUserNames([ticket]),
+            homeStatsHelpers.loadGroupNames([ticket]),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
 
         return {
             status: 'success',
@@ -30,14 +35,20 @@ export async function getTicketById(ticketId) {
     }
 }
 
-export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc') {
+export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null, status = null) {
     try {
-        const response = await getZendeskTickets(page, per_page, sort_by, sort_order);
+        const response = await getZendeskTickets(page, per_page, sort_by, sort_order, homeName, fromDate, status);
 
-        // Cargar nombres de usuarios
-        await homeStatsHelpers.loadUserNames(response.tickets);
+        // Precargar todos los datos necesarios en paralelo
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(response.tickets || response.results),
+            homeStatsHelpers.loadGroupNames(response.tickets || response.results),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
 
-        const formattedTickets = response.tickets.map(ticket =>
+        // Formatear todos los tickets (ahora es súper rápido)
+        const tickets = response.tickets || response.results;
+        const formattedTickets = tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
         );
 
@@ -47,7 +58,8 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
                 tickets: formattedTickets,
                 count: response.count,
                 next_page: response.next_page,
-                previous_page: response.previous_page
+                previous_page: response.previous_page,
+                home_filter: homeName || null
             }
         };
     } catch (error) {
@@ -60,13 +72,124 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
     }
 }
 
+export async function getImprovementProposalTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null) {
+    try {
+        const CUSTOM_STATUS_ID = 18587461153436;
+        const response = await getZendeskTicketsByCustomStatus(CUSTOM_STATUS_ID, page, per_page, sort_by, sort_order, homeName, fromDate);
+
+        // Precargar todos los datos necesarios en paralelo
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(response.results),
+            homeStatsHelpers.loadGroupNames(response.results),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+
+        // Formatear todos los tickets (ahora es súper rápido)
+        const formattedTickets = response.results.map(ticket =>
+            homeStatsHelpers.formatTicket(ticket)
+        );
+
+        return {
+            status: 'success',
+            data: {
+                tickets: formattedTickets,
+                count: response.count,
+                next_page: response.next_page,
+                previous_page: response.previous_page,
+                home_filter: homeName || null
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener tickets de propuesta de mejora:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener tickets de propuesta de mejora',
+            error: error.message
+        };
+    }
+}
+
+export async function getRepairTickets(page = 1, per_page = 25, sort_by = 'created_at', sort_order = 'desc', homeName = null, fromDate = null) {
+    try {
+        const response = await getZendeskRepairTickets(page, per_page, sort_by, sort_order, homeName, fromDate);
+
+        // Precargar todos los datos necesarios en paralelo
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(response.results),
+            homeStatsHelpers.loadGroupNames(response.results),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+
+        // Formatear todos los tickets (ahora es súper rápido)
+        const formattedTickets = response.results.map(ticket =>
+            homeStatsHelpers.formatTicket(ticket)
+        );
+
+        return {
+            status: 'success',
+            data: {
+                tickets: formattedTickets,
+                count: response.count,
+                next_page: response.next_page,
+                previous_page: response.previous_page,
+                home_filter: homeName || null
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener tickets de reparaciones:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener tickets de reparaciones',
+            error: error.message
+        };
+    }
+}
+
+export async function getHomeRepairStats(homeName) {
+    try {
+        const response = await getZendeskHomeRepairTickets(homeName);
+        
+        // Precargar datos necesarios para obtener nombres de campos personalizados
+        await homeStatsHelpers.preloadCustomFieldsOptions();
+        
+        const REPAIR_FIELD_ID = 17926767041308;
+        const stats = {};
+        
+        // Contar tickets por cada tipo de custom field de reparaciones
+        response.results.forEach(ticket => {
+            const repairField = ticket.custom_fields.find(field => field.id === REPAIR_FIELD_ID);
+            if (repairField && repairField.value) {
+                const repairType = repairField.value;
+                stats[repairType] = (stats[repairType] || 0) + 1;
+            }
+        });
+
+        return {
+            status: 'success',
+            data: {
+                home_name: homeName,
+                total_tickets: response.results.length,
+                repair_stats: stats
+            }
+        };
+    } catch (error) {
+        console.error('Error al obtener estadísticas de reparaciones para casa:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener estadísticas de reparaciones para casa',
+            error: error.message
+        };
+    }
+}
+
 export async function getTicketsStats() {
     try {
         // 1. Obtener lista única de casas
         const uniqueHomes = await getZendeskUniqueHomes();
 
-        // 2. Estructura para almacenar estadísticas
+        // 2. Estructura para almacenar estadísticas y todos los tickets
         const homeStats = {};
+        let allTickets = [];
 
         // 3. Procesar cada casa
         for (const homeName of uniqueHomes) {
@@ -81,16 +204,27 @@ export async function getTicketsStats() {
                 tickets.forEach(ticket => {
                     homeStatsHelpers.processTicket(ticket, homeStats);
                 });
+
+                // Agregar tickets al array total para precarga
+                allTickets = allTickets.concat(tickets);
             } catch (error) {
                 console.error(`Error procesando casa ${homeName}:`, error);
                 continue;
             }
         }
 
-        // 4. Procesar los tickets recientes para cada home
+        // 4. Precargar todos los datos necesarios una sola vez
+        console.log(`Precargando datos para ${allTickets.length} tickets...`);
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(allTickets),
+            homeStatsHelpers.loadGroupNames(allTickets),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+
+        // 5. Procesar los tickets recientes para cada home (ahora súper rápido)
         homeStatsHelpers.processRecentTickets(homeStats);
 
-        // 5. Convertir a array y retornar
+        // 6. Convertir a array y retornar
         return {
             status: 'success',
             data: {
@@ -102,6 +236,134 @@ export async function getTicketsStats() {
         return {
             status: 'error',
             message: 'Error al obtener estadísticas de homes',
+            error: error.message
+        };
+    }
+}
+
+export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
+    try {
+        console.log(`Obteniendo estadísticas simples de tickets - Casa: ${homeName || 'Todas'}, Desde: ${fromDate || 'Sin filtro'}`);
+        
+        // IDs de los custom fields
+        const INCIDENCE_AREA_FIELD_ID = 17926529031708;
+        const CATEGORY_FIELD_ID = 17926673594140;
+        
+        // Función auxiliar para obtener valor de custom field
+        const getCustomFieldValue = (ticket, fieldId) => {
+            if (!ticket.custom_fields) return null;
+            const field = ticket.custom_fields.find(cf => cf.id === fieldId);
+            return field ? field.value : null;
+        };
+        
+        // Obtener todos los tickets con los filtros aplicados
+        const response = await getAllZendeskTicketsForStats(homeName, fromDate);
+        const tickets = response.tickets;
+        
+        // Contadores para las estadísticas
+        let totalTickets = tickets.length;
+        let resolvedTickets = 0;
+        let inProgressTickets = 0;
+        
+        // Estados que consideramos como "resueltos"
+        const resolvedStatuses = ['solved', 'closed'];
+        
+        // Contadores para categorías y áreas de incidencia
+        const categoryCount = {};
+        const incidenceAreaCount = {};
+        
+        // Contadores de categorías por estado
+        const categoryCountResolved = {};
+        const categoryCountInProgress = {};
+        
+        // Procesar cada ticket para clasificar por estado y contar categorías/áreas
+        tickets.forEach(ticket => {
+            const isResolved = resolvedStatuses.includes(ticket.status);
+            
+            // Clasificar por estado
+            if (isResolved) {
+                resolvedTickets++;
+            } else {
+                inProgressTickets++;
+            }
+            
+            // Contar categorías (solo si no es null/undefined/empty)
+            const categoryValue = getCustomFieldValue(ticket, CATEGORY_FIELD_ID);
+            if (categoryValue && categoryValue.trim() !== '') {
+                // Conteo total
+                categoryCount[categoryValue] = (categoryCount[categoryValue] || 0) + 1;
+                
+                // Conteo por estado
+                if (isResolved) {
+                    categoryCountResolved[categoryValue] = (categoryCountResolved[categoryValue] || 0) + 1;
+                } else {
+                    categoryCountInProgress[categoryValue] = (categoryCountInProgress[categoryValue] || 0) + 1;
+                }
+            }
+            
+            // Contar áreas de incidencia (solo si no es null/undefined/empty)
+            const incidenceAreaValue = getCustomFieldValue(ticket, INCIDENCE_AREA_FIELD_ID);
+            if (incidenceAreaValue && incidenceAreaValue.trim() !== '') {
+                incidenceAreaCount[incidenceAreaValue] = (incidenceAreaCount[incidenceAreaValue] || 0) + 1;
+            }
+        });
+        
+        // Convertir contadores a arrays ordenados de mayor a menor
+        const categoryStats = Object.entries(categoryCount)
+            .map(([category, count]) => ({ category, count }))
+            .sort((a, b) => b.count - a.count);
+            
+        const incidenceAreaStats = Object.entries(incidenceAreaCount)
+            .map(([incidence_area, count]) => ({ incidence_area, count }))
+            .sort((a, b) => b.count - a.count);
+            
+        // Función auxiliar para obtener top 3 categorías
+        const getTop3Categories = (categoryCountObj) => {
+            return Object.entries(categoryCountObj)
+                .map(([category, count]) => ({ category, count }))
+                .sort((a, b) => b.count - a.count)
+                .slice(0, 3);
+        };
+        
+        // Top 3 categorías por grupo
+        const top3CategoriesTotal = getTop3Categories(categoryCount);
+        const top3CategoriesResolved = getTop3Categories(categoryCountResolved);
+        const top3CategoriesInProgress = getTop3Categories(categoryCountInProgress);
+        
+        console.log(`Estadísticas calculadas - Total: ${totalTickets}, Resueltos: ${resolvedTickets}, En progreso: ${inProgressTickets}`);
+        console.log(`Categorías encontradas: ${categoryStats.length}, Áreas de incidencia: ${incidenceAreaStats.length}`);
+        console.log(`Top 3 categorías - Total: ${top3CategoriesTotal.length}, Resueltos: ${top3CategoriesResolved.length}, En progreso: ${top3CategoriesInProgress.length}`);
+        
+        return {
+            status: 'success',
+            data: {
+                totalTickets,
+                resolvedTickets,
+                inProgressTickets,
+                filters: {
+                    home: homeName || null,
+                    from: fromDate || null
+                },
+                percentages: {
+                    resolved: totalTickets > 0 ? Math.round((resolvedTickets / totalTickets) * 100 * 10) / 10 : 0,
+                    inProgress: totalTickets > 0 ? Math.round((inProgressTickets / totalTickets) * 100 * 10) / 10 : 0
+                },
+                categoryStats,
+                incidenceAreaStats,
+                top3Categories: {
+                    total: top3CategoriesTotal,
+                    resolved: top3CategoriesResolved,
+                    inProgress: top3CategoriesInProgress
+                }
+            },
+            message: 'Estadísticas simples de tickets obtenidas exitosamente'
+        };
+        
+    } catch (error) {
+        console.error('Error al obtener estadísticas simples de tickets:', error);
+        return {
+            status: 'error',
+            message: 'Error al obtener estadísticas simples de tickets',
             error: error.message
         };
     }

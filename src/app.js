@@ -4,6 +4,11 @@ import dotenv from 'dotenv';
 import ticketRoutes from './routes/ticketRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import userRoutes from './routes/userRoutes.js';
+import homeRoutes from './routes/homeRoutes.js';
+import checkpointRoutes from './routes/checkpointRoutes.js';
+import staysRoutes from './routes/staysRoutes.js';
+import roomImagesRoutes from './routes/roomImagesRoutes.js';
 import swaggerDocs from './config/swagger.js';
 import { apiKeyAuth } from './middleware/auth.js';
 
@@ -33,6 +38,11 @@ app.use('/v1', apiKeyAuth);
 app.use('/v1/tickets', ticketRoutes);
 app.use('/v1/reviews', reviewRoutes);
 app.use('/v1/report', reportRoutes);
+app.use('/v1/users', userRoutes);
+app.use('/v1/homes', homeRoutes);
+app.use('/v1/checkpoints', checkpointRoutes);
+app.use('/v1/stays', staysRoutes);
+app.use('/v1/homes', roomImagesRoutes);
 
 // Manejo de errores para Vercel
 app.use((err, req, res, next) => {
