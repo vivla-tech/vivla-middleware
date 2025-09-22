@@ -304,6 +304,8 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
         // IDs de los custom fields
         const INCIDENCE_AREA_FIELD_ID = 17926529031708;
         const CATEGORY_FIELD_ID = 17926673594140;
+        const INCIDENCE_CAUSE_FIELD_ID = 21971920474524;
+        const INCIDENCE_COST_FIELD_ID = 18458778087068;
         
         // Función auxiliar para obtener valor de custom field
         const getCustomFieldValue = (ticket, fieldId) => {
@@ -327,6 +329,8 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
         // Contadores para categorías y áreas de incidencia
         const categoryCount = {};
         const incidenceAreaCount = {};
+        const incidenceCauseCount = {};
+        const incidenceCostCount = {};
         
         // Contadores de categorías por estado
         const categoryCountResolved = {};
@@ -362,6 +366,18 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
             if (incidenceAreaValue && incidenceAreaValue.trim() !== '') {
                 incidenceAreaCount[incidenceAreaValue] = (incidenceAreaCount[incidenceAreaValue] || 0) + 1;
             }
+            
+            // Contar causa de incidencia (solo si no es null/undefined/empty)
+            const incidenceCauseValue = getCustomFieldValue(ticket, INCIDENCE_CAUSE_FIELD_ID);
+            if (incidenceCauseValue && incidenceCauseValue.trim() !== '') {
+                incidenceCauseCount[incidenceCauseValue] = (incidenceCauseCount[incidenceCauseValue] || 0) + 1;
+            }
+            
+            // Contar costo de incidencia (solo si no es null/undefined/empty)
+            const incidenceCostValue = getCustomFieldValue(ticket, INCIDENCE_COST_FIELD_ID);
+            if (incidenceCostValue && incidenceCostValue.trim() !== '') {
+                incidenceCostCount[incidenceCostValue] = (incidenceCostCount[incidenceCostValue] || 0) + 1;
+            }
         });
         
         // Convertir contadores a arrays ordenados de mayor a menor
@@ -371,6 +387,14 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
             
         const incidenceAreaStats = Object.entries(incidenceAreaCount)
             .map(([incidence_area, count]) => ({ incidence_area, count }))
+            .sort((a, b) => b.count - a.count);
+            
+        const incidenceCauseStats = Object.entries(incidenceCauseCount)
+            .map(([incidence_cause, count]) => ({ incidence_cause, count }))
+            .sort((a, b) => b.count - a.count);
+            
+        const incidenceCostStats = Object.entries(incidenceCostCount)
+            .map(([incidence_cost, count]) => ({ incidence_cost, count }))
             .sort((a, b) => b.count - a.count);
             
         // Función auxiliar para obtener top 3 categorías
@@ -388,6 +412,7 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
         
         console.log(`Estadísticas calculadas - Total: ${totalTickets}, Resueltos: ${resolvedTickets}, En progreso: ${inProgressTickets}`);
         console.log(`Categorías encontradas: ${categoryStats.length}, Áreas de incidencia: ${incidenceAreaStats.length}`);
+        console.log(`Causas de incidencia: ${incidenceCauseStats.length}, Costos de incidencia: ${incidenceCostStats.length}`);
         console.log(`Top 3 categorías - Total: ${top3CategoriesTotal.length}, Resueltos: ${top3CategoriesResolved.length}, En progreso: ${top3CategoriesInProgress.length}`);
         
         return {
@@ -406,6 +431,8 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
                 },
                 categoryStats,
                 incidenceAreaStats,
+                incidenceCauseStats,
+                incidenceCostStats,
                 top3Categories: {
                     total: top3CategoriesTotal,
                     resolved: top3CategoriesResolved,
