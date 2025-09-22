@@ -1,6 +1,57 @@
 import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatus, getZendeskRepairTickets, getZendeskHomeRepairTickets, getZendeskUniqueHomes, getZendeskTicketsForHome, getAllZendeskTicketsForStats } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
+/**
+ * Calcula la fecha de la última actuación (ticket más reciente con estados finalizados ≤ currentDate)
+ * @param {Array} tickets - Array de tickets de Zendesk
+ * @param {string} currentDate - Fecha actual en formato YYYY-MM-DD
+ * @param {number} repairFieldId - ID del custom field de reparaciones
+ * @returns {Object} Objeto con la fecha de última actuación
+ */
+function calculateLastAction(tickets, currentDate, repairFieldId) {
+    const currentDateObj = new Date(currentDate);
+    const targetStates = ['finalizado', 'comunicado_a_propietario'];
+    
+    // Filtrar tickets con estados objetivo
+    const completedTickets = [];
+    
+    tickets.forEach(ticket => {
+        const repairField = ticket.custom_fields.find(field => field.id === repairFieldId);
+        
+        if (repairField && repairField.value && targetStates.includes(repairField.value)) {
+            // Convertir updated_at a formato YYYY-MM-DD
+            const updatedAt = new Date(ticket.updated_at);
+            const updatedAtStr = updatedAt.toISOString().split('T')[0];
+            
+            // Solo incluir tickets donde updated_at <= currentDate
+            if (updatedAt <= currentDateObj) {
+                completedTickets.push({
+                    updatedAt: updatedAtStr,
+                    updatedAtObj: updatedAt,
+                    state: repairField.value
+                });
+            }
+        }
+    });
+    
+    if (completedTickets.length === 0) {
+        return {
+            date: null,
+            message: 'No disponible'
+        };
+    }
+    
+    // Encontrar el ticket más reciente
+    const lastAction = completedTickets.reduce((latest, current) => {
+        return current.updatedAtObj > latest.updatedAtObj ? current : latest;
+    });
+    
+    return {
+        date: lastAction.updatedAt,
+        message: `Last action: ${lastAction.state} on ${lastAction.updatedAt}`
+    };
+}
+
 export async function getTicketById(ticketId) {
     try {
         console.log(`Obteniendo ticket con ID: ${ticketId}`);
@@ -164,12 +215,17 @@ export async function getHomeRepairStats(homeName) {
             }
         });
 
+        // Calcular la última actuación (ticket más reciente con estados finalizados ≤ currentDate)
+        const currentDate = new Date().toISOString().split('T')[0];
+        const lastAction = calculateLastAction(response.results, currentDate, REPAIR_FIELD_ID);
+
         return {
             status: 'success',
             data: {
                 home_name: homeName,
                 total_tickets: response.results.length,
-                repair_stats: stats
+                repair_stats: stats,
+                lastAction: lastAction
             }
         };
     } catch (error) {
