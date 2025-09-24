@@ -1,5 +1,4 @@
 import express from 'express';
-import cors from 'cors';
 import dotenv from 'dotenv';
 import ticketRoutes from './routes/ticketRoutes.js';
 import reviewRoutes from './routes/reviewRoutes.js';
@@ -9,8 +8,10 @@ import homeRoutes from './routes/homeRoutes.js';
 import checkpointRoutes from './routes/checkpointRoutes.js';
 import staysRoutes from './routes/staysRoutes.js';
 import roomImagesRoutes from './routes/roomImagesRoutes.js';
+import proposalRoutes from './routes/proposalRoutes.js';
 import swaggerDocs from './config/swagger.js';
 import { apiKeyAuth } from './middleware/auth.js';
+import cors, { corsOptions, corsErrorHandler } from './middleware/cors.js';
 
 // Cargar variables de entorno lo antes posible
 dotenv.config();
@@ -22,7 +23,7 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Documentación Swagger - habilitada en todos los entornos
 swaggerDocs(app);
@@ -43,6 +44,10 @@ app.use('/v1/homes', homeRoutes);
 app.use('/v1/checkpoints', checkpointRoutes);
 app.use('/v1/stays', staysRoutes);
 app.use('/v1/homes', roomImagesRoutes);
+app.use('/api/proposals', proposalRoutes);
+
+// Manejo de errores de CORS
+app.use(corsErrorHandler);
 
 // Manejo de errores para Vercel
 app.use((err, req, res, next) => {
