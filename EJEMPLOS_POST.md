@@ -399,3 +399,27 @@ function ProposalForm() {
     "currentOrigin": "https://unauthorized-domain.com"
 }
 ```
+
+## Estructura de datos en Firestore
+
+Las propuestas se guardan en la colección `hx-proposals` con la siguiente estructura:
+
+```json
+{
+  "proposal": "La piscina debería tener más iluminación nocturna",
+  "investment": "100-500",
+  "hid": "home_12345",
+  "files": [
+    {
+      "fileName": "uuid-generated-name.jpg",
+      "originalName": "image1.jpg",
+      "url": "https://firebasestorage.googleapis.com/...",
+      "size": 1024000,
+      "mimeType": "image/jpeg"
+    }
+  ],
+  "createdAt": "2024-01-15T10:30:00Z",
+  "status": "pending",
+  "proposalId": "123e4567-e89b-12d3-a456-426614174000"
+}
+```

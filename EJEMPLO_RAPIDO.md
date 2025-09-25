@@ -9,7 +9,8 @@ curl -X POST http://localhost:3000/api/proposals \
   -H "Origin: http://localhost:3000" \
   -d '{
     "proposal": "La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes",
-    "investment": "100-500"
+    "investment": "100-500",
+    "hid": "home_12345"
   }'
 ```
 
@@ -25,7 +26,8 @@ fetch('/api/proposals', {
     },
     body: JSON.stringify({
         proposal: "La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes",
-        investment: "100-500"
+        investment: "100-500",
+        hid: "home_12345"
     })
 })
 .then(response => response.json())
@@ -44,6 +46,7 @@ fetch('/api/proposals', {
 const formData = new FormData();
 formData.append('proposal', 'Instalación de sistema de riego automático en el jardín');
 formData.append('investment', '500-1000');
+formData.append('hid', 'home_12345');
 
 // Agregar archivo desde input
 const fileInput = document.getElementById('fileInput');
