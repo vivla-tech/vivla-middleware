@@ -25,7 +25,8 @@ async function testSimpleProposal() {
             },
             body: JSON.stringify({
                 proposal: "La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes durante las noches de verano. Esto incluiría luces LED sumergibles y iluminación perimetral.",
-                investment: "100-500"
+                investment: "100-500",
+                hid: "home_test_001"
             })
         });
 
@@ -57,6 +58,7 @@ async function testProposalWithFiles() {
         const formData = new FormData();
         formData.append('proposal', 'Instalación de sistema de riego automático en el jardín para mantener las plantas siempre hidratadas y reducir el trabajo manual.');
         formData.append('investment', '500-1000');
+        formData.append('hid', 'home_test_002');
 
         // Crear archivos de prueba si no existen
         const testFiles = await createTestFiles();
@@ -137,18 +139,23 @@ async function testValidations() {
     const testCases = [
         {
             name: 'Propuesta muy corta',
-            data: { proposal: 'Corto', investment: '100-500' },
+            data: { proposal: 'Corto', investment: '100-500', hid: 'home_test' },
             expectedError: 'La propuesta debe tener al menos 10 caracteres'
         },
         {
             name: 'Inversión inválida',
-            data: { proposal: 'Esta es una propuesta válida con suficiente texto', investment: 'invalid' },
+            data: { proposal: 'Esta es una propuesta válida con suficiente texto', investment: 'invalid', hid: 'home_test' },
             expectedError: 'La inversión debe ser uno de los valores válidos'
         },
         {
             name: 'Propuesta vacía',
-            data: { proposal: '', investment: '100-500' },
+            data: { proposal: '', investment: '100-500', hid: 'home_test' },
             expectedError: 'La propuesta es requerida'
+        },
+        {
+            name: 'HID faltante',
+            data: { proposal: 'Esta es una propuesta válida con suficiente texto', investment: '100-500' },
+            expectedError: 'El ID del hogar (hid) es requerido'
         }
     ];
 
