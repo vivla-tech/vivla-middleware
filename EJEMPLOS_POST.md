@@ -9,7 +9,8 @@ curl -X POST http://localhost:3000/api/proposals \
   -H "Origin: http://localhost:3000" \
   -d '{
     "proposal": "La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes durante las noches de verano",
-    "investment": "100-500"
+    "investment": "100-500",
+    "hid": "home_12345"
   }'
 ```
 
@@ -19,6 +20,7 @@ curl -X POST http://localhost:3000/api/proposals \
   -H "Origin: http://localhost:3000" \
   -F "proposal=La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes" \
   -F "investment=100-500" \
+  -F "hid=home_12345" \
   -F "files=@/ruta/a/imagen1.jpg" \
   -F "files=@/ruta/a/documento.pdf"
 ```
@@ -38,7 +40,8 @@ async function crearPropuesta() {
             credentials: 'include',
             body: JSON.stringify({
                 proposal: "La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes durante las noches de verano",
-                investment: "100-500"
+                investment: "100-500",
+                hid: "home_12345"
             })
         });
 
@@ -63,6 +66,7 @@ async function crearPropuestaConArchivos() {
         const formData = new FormData();
         formData.append('proposal', 'La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes');
         formData.append('investment', '100-500');
+        formData.append('hid', 'home_12345');
 
         // Agregar archivos desde un input file
         const fileInput = document.getElementById('fileInput');
@@ -122,6 +126,12 @@ async function crearPropuestaConArchivos() {
         </div>
         
         <div>
+            <label for="hid">ID del Hogar:</label>
+            <input type="text" id="hid" name="hid" required 
+                placeholder="Ej: home_12345">
+        </div>
+        
+        <div>
             <label for="files">Archivos adjuntos (máximo 5):</label>
             <input type="file" id="files" name="files" multiple 
                 accept=".jpg,.jpeg,.png,.pdf,.doc,.docx">
@@ -173,13 +183,15 @@ async function crearPropuestaConArchivos() {
 ```json
 {
     "proposal": "La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes durante las noches de verano",
-    "investment": "100-500"
+    "investment": "100-500",
+    "hid": "home_12345"
 }
 ```
 
 ### Body (Form-data):
 - `proposal`: `La piscina debería tener más iluminación nocturna`
 - `investment`: `100-500`
+- `hid`: `home_12345`
 - `files`: [Seleccionar archivos]
 
 ## 5. Ejemplo con Axios
@@ -201,7 +213,8 @@ async function crearPropuestaSimple() {
     try {
         const response = await api.post('/api/proposals', {
             proposal: "La piscina debería tener más iluminación nocturna para mejorar la experiencia de los huéspedes",
-            investment: "100-500"
+            investment: "100-500",
+            hid: "home_12345"
         });
         
         console.log('✅ Propuesta creada:', response.data);
@@ -218,6 +231,7 @@ async function crearPropuestaConArchivos(archivos) {
         const formData = new FormData();
         formData.append('proposal', 'La piscina debería tener más iluminación nocturna');
         formData.append('investment', '100-500');
+        formData.append('hid', 'home_12345');
         
         archivos.forEach(archivo => {
             formData.append('files', archivo);
@@ -255,6 +269,7 @@ function useProposal() {
             const formData = new FormData();
             formData.append('proposal', proposalData.proposal);
             formData.append('investment', proposalData.investment);
+            formData.append('hid', proposalData.hid);
 
             archivos.forEach(archivo => {
                 formData.append('files', archivo);
@@ -292,12 +307,13 @@ function ProposalForm() {
     const { crearPropuesta, loading, error } = useProposal();
     const [proposal, setProposal] = useState('');
     const [investment, setInvestment] = useState('');
+    const [hid, setHid] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
         try {
-            const result = await crearPropuesta({ proposal, investment });
+            const result = await crearPropuesta({ proposal, investment, hid });
             alert(`✅ Propuesta creada: ${result.proposalId}`);
         } catch (error) {
             alert(`❌ Error: ${error.message}`);
@@ -325,6 +341,14 @@ function ProposalForm() {
                 <option value="1000-5000">$1,000 - $5,000</option>
                 <option value="5000+">$5,000+</option>
             </select>
+            
+            <input 
+                type="text"
+                value={hid}
+                onChange={(e) => setHid(e.target.value)}
+                placeholder="ID del hogar (ej: home_12345)"
+                required
+            />
             
             <button type="submit" disabled={loading}>
                 {loading ? 'Creando...' : 'Crear Propuesta'}
@@ -373,5 +397,29 @@ function ProposalForm() {
         "https://hx.vivla.com"
     ],
     "currentOrigin": "https://unauthorized-domain.com"
+}
+```
+
+## Estructura de datos en Firestore
+
+Las propuestas se guardan en la colección `hx-proposals` con la siguiente estructura:
+
+```json
+{
+  "proposal": "La piscina debería tener más iluminación nocturna",
+  "investment": "100-500",
+  "hid": "home_12345",
+  "files": [
+    {
+      "fileName": "uuid-generated-name.jpg",
+      "originalName": "image1.jpg",
+      "url": "https://firebasestorage.googleapis.com/...",
+      "size": 1024000,
+      "mimeType": "image/jpeg"
+    }
+  ],
+  "createdAt": "2024-01-15T10:30:00Z",
+  "status": "pending",
+  "proposalId": "123e4567-e89b-12d3-a456-426614174000"
 }
 ```

@@ -13,6 +13,7 @@ const router = express.Router();
  *       required:
  *         - proposal
  *         - investment
+ *         - hid
  *       properties:
  *         proposal:
  *           type: string
@@ -24,6 +25,10 @@ const router = express.Router();
  *           description: Rango de inversión estimada
  *           enum: ["0-100", "100-500", "500-1000", "1000-5000", "5000+"]
  *           example: "100-500"
+ *         hid:
+ *           type: string
+ *           description: ID del hogar (Home ID)
+ *           example: "home_12345"
  *         files:
  *           type: array
  *           items:
@@ -83,6 +88,7 @@ const router = express.Router();
  *             required:
  *               - proposal
  *               - investment
+ *               - hid
  *             properties:
  *               proposal:
  *                 type: string
@@ -93,6 +99,10 @@ const router = express.Router();
  *                 description: Rango de inversión estimada
  *                 enum: ["0-100", "100-500", "500-1000", "1000-5000", "5000+"]
  *                 example: "100-500"
+ *               hid:
+ *                 type: string
+ *                 description: ID del hogar (Home ID)
+ *                 example: "home_12345"
  *               files:
  *                 type: array
  *                 items:

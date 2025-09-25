@@ -1,4 +1,5 @@
 import proposalService from '../services/proposalService.js';
+import multer from 'multer';
 
 class ProposalController {
     /**
@@ -7,20 +8,20 @@ class ProposalController {
      */
     async createProposal(req, res) {
         try {
-            const { proposal, investment } = req.body;
+            const { proposal, investment, hid } = req.body;
             const files = req.files || [];
 
             // Validar que se proporcionen los datos requeridos
-            if (!proposal || !investment) {
+            if (!proposal || !investment || !hid) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Los campos proposal e investment son requeridos'
+                    message: 'Los campos proposal, investment e hid son requeridos'
                 });
             }
 
             // Crear la propuesta usando el servicio
             const result = await proposalService.createProposal(
-                { proposal, investment },
+                { proposal, investment, hid },
                 files
             );
 

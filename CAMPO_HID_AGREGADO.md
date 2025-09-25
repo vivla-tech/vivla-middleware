@@ -1,9 +1,12 @@
-# Ejemplo Rápido - Llamada POST al Endpoint de Propuestas
+# Ejemplo Rápido - Campo HID Agregado
+
+## ✅ Cambios Implementados
+
+Se ha agregado el campo `hid` (Home ID) al endpoint de propuestas. Ahora es un campo **requerido** junto con `proposal`, `investment` y `files`.
 
 ## 🚀 Ejemplo más simple (curl)
 
 ```bash
-# Propuesta básica sin archivos
 curl -X POST http://localhost:3000/api/proposals \
   -H "Content-Type: application/json" \
   -H "Origin: http://localhost:3000" \
@@ -14,9 +17,7 @@ curl -X POST http://localhost:3000/api/proposals \
   }'
 ```
 
-## 🌐 Ejemplo desde el navegador (JavaScript)
-
-Abre la consola del navegador en `http://localhost:3000` o `https://hx.vivla.com` y ejecuta:
+## 🌐 Ejemplo desde JavaScript
 
 ```javascript
 fetch('/api/proposals', {
@@ -69,7 +70,44 @@ fetch('/api/proposals', {
 });
 ```
 
-## 🧪 Ejecutar script de prueba
+## 📋 Estructura de datos en Firestore
+
+Ahora las propuestas se guardan con el campo `hid`:
+
+```json
+{
+  "proposal": "La piscina debería tener más iluminación nocturna",
+  "investment": "100-500",
+  "hid": "home_12345",
+  "files": [...],
+  "createdAt": "2024-01-15T10:30:00Z",
+  "status": "pending",
+  "proposalId": "123e4567-e89b-12d3-a456-426614174000"
+}
+```
+
+## ❌ Nuevos errores de validación
+
+Si no envías el campo `hid`, recibirás:
+
+```json
+{
+    "success": false,
+    "message": "Los campos proposal, investment e hid son requeridos"
+}
+```
+
+O si el `hid` está vacío:
+
+```json
+{
+    "success": false,
+    "message": "Datos inválidos",
+    "errors": ["El ID del hogar (hid) es requerido"]
+}
+```
+
+## 🧪 Probar los cambios
 
 ```bash
 # Asegúrate de que el servidor esté corriendo
@@ -79,43 +117,4 @@ npm start
 node test-proposal.js
 ```
 
-## 📋 Respuesta esperada
-
-```json
-{
-    "success": true,
-    "proposalId": "123e4567-e89b-12d3-a456-426614174000",
-    "fileUrls": [],
-    "message": "Propuesta creada exitosamente"
-}
-```
-
-## ❌ Errores comunes
-
-### CORS Error
-```json
-{
-    "success": false,
-    "message": "Acceso denegado por política CORS"
-}
-```
-**Solución**: Asegúrate de hacer la petición desde `localhost:3000` o `hx.vivla.com`
-
-### Validación Error
-```json
-{
-    "success": false,
-    "message": "Datos inválidos",
-    "errors": ["La propuesta debe tener al menos 10 caracteres"]
-}
-```
-**Solución**: Usa una propuesta de al menos 10 caracteres y un investment válido
-
-### Archivo Error
-```json
-{
-    "success": false,
-    "message": "Archivo demasiado grande. Máximo 10MB por archivo"
-}
-```
-**Solución**: Usa archivos más pequeños o menos archivos (máximo 5)
+El script de prueba ahora incluye casos de prueba para el campo `hid` y verificará que las validaciones funcionen correctamente.

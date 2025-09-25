@@ -29,6 +29,13 @@ class ProposalService {
             errors.push('La inversión debe ser uno de los valores válidos: ' + validInvestments.join(', '));
         }
 
+        // Validar hid (Home ID)
+        if (!data.hid || typeof data.hid !== 'string') {
+            errors.push('El ID del hogar (hid) es requerido');
+        } else if (data.hid.trim().length === 0) {
+            errors.push('El ID del hogar (hid) no puede estar vacío');
+        }
+
         return {
             isValid: errors.length === 0,
             errors: errors
@@ -117,6 +124,7 @@ class ProposalService {
             const proposalDoc = {
                 proposal: proposalData.proposal.trim(),
                 investment: proposalData.investment,
+                hid: proposalData.hid.trim(),
                 files: fileUrls,
                 createdAt: serverTimestamp(),
                 status: 'pending',
