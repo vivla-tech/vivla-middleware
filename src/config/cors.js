@@ -10,7 +10,9 @@ export const getCorsConfig = () => {
     // Dominios base permitidos
     const baseOrigins = [
         'https://hx.vivla.com',
-        'https://www.hx.vivla.com'
+        'https://www.hx.vivla.com',
+        'https://report.vivla.com',
+        'https://www.report.vivla.com'
     ];
 
     // En desarrollo, agregar localhost y variaciones
