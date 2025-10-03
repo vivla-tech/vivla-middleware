@@ -1,13 +1,15 @@
 # Configuración CORS - Middleware Zendesk
 
 ## Descripción
-Configuración de CORS (Cross-Origin Resource Sharing) para permitir el acceso desde el frontend de [hx.vivla.com](https://hx.vivla.com/) y localhost durante desarrollo.
+Configuración de CORS (Cross-Origin Resource Sharing) para permitir el acceso desde los frontends de [hx.vivla.com](https://hx.vivla.com/), [report.vivla.com](https://report.vivla.com/) y localhost durante desarrollo.
 
 ## Dominios Permitidos
 
 ### Producción
 - `https://hx.vivla.com`
 - `https://www.hx.vivla.com`
+- `https://report.vivla.com`
+- `https://www.report.vivla.com`
 
 ### Desarrollo
 - `http://localhost:3000`
@@ -49,7 +51,7 @@ ALLOWED_ORIGINS=https://staging.hx.vivla.com,https://dev.hx.vivla.com
 
 ### JavaScript (Fetch)
 ```javascript
-// Desde hx.vivla.com o localhost:3000
+// Desde hx.vivla.com, report.vivla.com o localhost:3000
 fetch('https://your-api-domain.com/api/proposals', {
     method: 'POST',
     headers: {
@@ -116,6 +118,13 @@ curl -H "Origin: https://hx.vivla.com" \
      -H "Access-Control-Request-Headers: X-Requested-With" \
      -X OPTIONS \
      https://your-api-domain.com/api/proposals
+
+# Test desde report.vivla.com
+curl -H "Origin: https://report.vivla.com" \
+     -H "Access-Control-Request-Method: POST" \
+     -H "Access-Control-Request-Headers: X-Requested-With" \
+     -X OPTIONS \
+     https://your-api-domain.com/api/proposals
 ```
 
 ### Con Postman
@@ -149,7 +158,7 @@ curl -H "Origin: https://hx.vivla.com" \
 En desarrollo, verás logs como:
 ```
 🚫 CORS bloqueado para origin: https://unauthorized-domain.com
-✅ Dominios permitidos: http://localhost:3000, https://hx.vivla.com
+✅ Dominios permitidos: http://localhost:3000, https://hx.vivla.com, https://report.vivla.com
 ```
 
 Esto te ayuda a identificar problemas de configuración rápidamente.
