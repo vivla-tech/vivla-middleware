@@ -108,7 +108,7 @@ router.get('/stats', getTicketsStatsController);
  * /v1/tickets/simple-stats:
  *   get:
  *     summary: Obtener estadísticas simples de tickets
- *     description: Obtiene estadísticas básicas de tickets clasificados por estado (resueltos vs en progreso), incluyendo conteos por categoría y área de incidencia, y las top 3 categorías más frecuentes por cada grupo. Opcionalmente puede filtrar por casa específica y fecha de creación. Maneja automáticamente la paginación de Zendesk para obtener totales reales.
+ *     description: Obtiene estadísticas básicas de tickets clasificados por estado (resueltos vs en progreso), incluyendo conteos por categoría y área de incidencia, y las top 3 categorías más frecuentes por cada grupo. Opcionalmente puede filtrar por casa específica y rango de fechas de creación. Maneja automáticamente la paginación de Zendesk para obtener totales reales.
  *     parameters:
  *       - in: query
  *         name: home
@@ -123,6 +123,13 @@ router.get('/stats', getTicketsStatsController);
  *           format: date
  *         description: Fecha desde la cual filtrar tickets (formato YYYY-MM-DD). Solo se incluirán tickets creados en o después de esta fecha.
  *         example: "2024-01-01"
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha hasta la cual filtrar tickets (formato YYYY-MM-DD). Solo se incluirán tickets creados en o antes de esta fecha.
+ *         example: "2024-12-31"
  *     responses:
  *       200:
  *         description: Estadísticas simples obtenidas exitosamente
@@ -164,8 +171,14 @@ router.get('/stats', getTicketsStatsController);
  *                           type: string
  *                           nullable: true
  *                           format: date
- *                           description: Filtro de fecha aplicado
+ *                           description: Filtro de fecha desde aplicado
  *                           example: "2024-01-01"
+ *                         to:
+ *                           type: string
+ *                           nullable: true
+ *                           format: date
+ *                           description: Filtro de fecha hasta aplicado
+ *                           example: "2024-12-31"
  *                     percentages:
  *                       type: object
  *                       properties:

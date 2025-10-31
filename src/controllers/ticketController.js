@@ -194,8 +194,8 @@ export async function getTicketsStatsController(req, res) {
 
 export async function getTicketsSimpleStatsController(req, res) {
     try {
-        const { home, from } = req.query;
-        const result = await getTicketsSimpleStats(home, from);
+        const { home, from, to } = req.query;
+        const result = await getTicketsSimpleStats(home, from, to);
 
         if (result.status === 'error') {
             return res.status(500).json(result);
