@@ -297,9 +297,9 @@ export async function getTicketsStats() {
     }
 }
 
-export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
+export async function getTicketsSimpleStats(homeName = null, fromDate = null, toDate = null) {
     try {
-        console.log(`Obteniendo estadísticas simples de tickets - Casa: ${homeName || 'Todas'}, Desde: ${fromDate || 'Sin filtro'}`);
+        console.log(`Obteniendo estadísticas simples de tickets - Casa: ${homeName || 'Todas'}, Desde: ${fromDate || 'Sin filtro'}, Hasta: ${toDate || 'Sin filtro'}`);
         
         // IDs de los custom fields
         const INCIDENCE_AREA_FIELD_ID = 17926529031708;
@@ -315,7 +315,7 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
         };
         
         // Obtener todos los tickets con los filtros aplicados
-        const response = await getAllZendeskTicketsForStats(homeName, fromDate);
+        const response = await getAllZendeskTicketsForStats(homeName, fromDate, toDate);
         const tickets = response.tickets;
         
         // Contadores para las estadísticas
@@ -423,7 +423,8 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null) {
                 inProgressTickets,
                 filters: {
                     home: homeName || null,
-                    from: fromDate || null
+                    from: fromDate || null,
+                    to: toDate || null
                 },
                 percentages: {
                     resolved: totalTickets > 0 ? Math.round((resolvedTickets / totalTickets) * 100 * 10) / 10 : 0,
