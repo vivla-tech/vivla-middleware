@@ -148,13 +148,20 @@ export async function getZendeskHomeRepairTickets(homeName) {
 }
 
 // Obtener todos los tickets para estadísticas (manejando paginación automáticamente)
-export async function getAllZendeskTicketsForStats(homeName = null, fromDate = null) {
+export async function getAllZendeskTicketsForStats(homeName = null, fromDate = null, toDate = null) {
     const HOME_FIELD_ID = 17925940459804;
     
     // Validar formato de fecha si se proporciona
     if (fromDate) {
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (!dateRegex.test(fromDate)) {
+            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
+        }
+    }
+    
+    if (toDate) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(toDate)) {
             throw new Error('El formato de fecha debe ser YYYY-MM-DD');
         }
     }
@@ -170,7 +177,7 @@ export async function getAllZendeskTicketsForStats(homeName = null, fromDate = n
         let response;
         
         // Si hay filtros, usar la API de búsqueda
-        if (homeName || fromDate) {
+        if (homeName || fromDate || toDate) {
             let queryParts = [];
             
             if (homeName) {
@@ -179,6 +186,10 @@ export async function getAllZendeskTicketsForStats(homeName = null, fromDate = n
             
             if (fromDate) {
                 queryParts.push(`created_at>=${fromDate}`);
+            }
+            
+            if (toDate) {
+                queryParts.push(`created_at<=${toDate}`);
             }
             
             const query = queryParts.join(' ');
