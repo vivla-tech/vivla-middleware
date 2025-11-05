@@ -32,10 +32,10 @@ function shouldDiscardTicket(ticket) {
         debugLog(`🚫 Ticket ${ticket.id} descartado por custom_status: ${ticket.custom_status_id}`);
         return true;
     }
-    if (ticket.status === 'closed') {
-        debugLog(`🚫 Ticket ${ticket.id} descartado por status: ${ticket.status}`);
-        return true;
-    }
+    // if (ticket.status === 'closed') {
+    //     debugLog(`🚫 Ticket ${ticket.id} descartado por status: ${ticket.status}`);
+    //    return true;
+    // }
     
 
     return false;
@@ -371,9 +371,11 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null, to
         let totalTickets = tickets.length;
         let resolvedTickets = 0;
         let inProgressTickets = 0;
+        let pendingTickets = 0;
         
         // Estados que consideramos como "resueltos"
         const resolvedStatuses = ['solved', 'closed'];
+        const pendingStatuses = ['pending', 'hold'];
         
         // Contadores para categorías y áreas de incidencia
         const categoryCount = {};
@@ -388,11 +390,15 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null, to
         // Procesar cada ticket para clasificar por estado y contar categorías/áreas
         tickets.forEach(ticket => {
             const isResolved = resolvedStatuses.includes(ticket.status);
+            const isPending = pendingStatuses.includes(ticket.status);
             
             // Clasificar por estado
             if (isResolved) {
                 resolvedTickets++;
-            } else {
+            } else if (isPending) {
+                pendingTickets++;
+            }
+            else {
                 inProgressTickets++;
             }
             
@@ -470,6 +476,7 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null, to
                 totalTickets,
                 resolvedTickets,
                 inProgressTickets,
+                pendingTickets,
                 filters: {
                     home: homeName || null,
                     from: fromDate || null,
