@@ -32,6 +32,10 @@ function shouldDiscardTicket(ticket) {
         debugLog(`🚫 Ticket ${ticket.id} descartado por custom_status: ${ticket.custom_status_id}`);
         return true;
     }
+    if (ticket.status === 'closed') {
+        debugLog(`🚫 Ticket ${ticket.id} descartado por status: ${ticket.status}`);
+        return true;
+    }
     
 
     return false;
