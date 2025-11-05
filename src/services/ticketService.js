@@ -2,6 +2,42 @@ import { getZendeskTicketById, getZendeskTickets, getZendeskTicketsByCustomStatu
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 /**
+ * Función helper para logging de debug
+ * @param {string} message - Mensaje a loguear
+ */
+function debugLog(message) {
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true') {
+        console.log(message);
+    }
+}
+
+/**
+ * Determina si un ticket debe ser descartado (no procesado) basado en su custom_status
+ * @param {Object} ticket - Datos del ticket
+ * @returns {boolean} true si el ticket debe ser descartado, false si debe procesarse
+ */
+function shouldDiscardTicket(ticket) {
+    // Validar entrada
+    if (!ticket || typeof ticket !== 'object') {
+        debugLog('⚠️ Ticket inválido recibido en shouldDiscardTicket');
+        return true; // Descartar tickets inválidos
+    }
+
+    // Custom statuses prohibidos (tickets que no deben migrarse)
+    const forbiddenCustomStatuses = [
+        18587461153436 // Ticket de propuesta de mejora
+    ];
+
+    if (ticket.custom_status_id && forbiddenCustomStatuses.includes(ticket.custom_status_id)) {
+        debugLog(`🚫 Ticket ${ticket.id} descartado por custom_status: ${ticket.custom_status_id}`);
+        return true;
+    }
+    
+
+    return false;
+}
+
+/**
  * Calcula la fecha de la última actuación (ticket más reciente con estados finalizados ≤ currentDate)
  * @param {Array} tickets - Array de tickets de Zendesk
  * @param {string} currentDate - Fecha actual en formato YYYY-MM-DD
@@ -299,6 +335,7 @@ export async function getTicketsStats() {
 
 export async function getTicketsSimpleStats(homeName = null, fromDate = null, toDate = null) {
     try {
+        
         console.log(`Obteniendo estadísticas simples de tickets - Casa: ${homeName || 'Todas'}, Desde: ${fromDate || 'Sin filtro'}, Hasta: ${toDate || 'Sin filtro'}`);
         
         // IDs de los custom fields
@@ -316,7 +353,15 @@ export async function getTicketsSimpleStats(homeName = null, fromDate = null, to
         
         // Obtener todos los tickets con los filtros aplicados
         const response = await getAllZendeskTicketsForStats(homeName, fromDate, toDate);
-        const tickets = response.tickets;
+        const allTickets = response.tickets;
+        
+        // Filtrar tickets que deben ser descartados (ej: tickets de propuesta de mejora)
+        const tickets = allTickets.filter(ticket => !shouldDiscardTicket(ticket));
+        
+        const discardedCount = allTickets.length - tickets.length;
+        if (discardedCount > 0) {
+            console.log(`📊 ${discardedCount} ticket(s) descartado(s) por custom_status prohibido`);
+        }
         
         // Contadores para las estadísticas
         let totalTickets = tickets.length;
