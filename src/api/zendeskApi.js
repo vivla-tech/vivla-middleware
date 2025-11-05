@@ -147,37 +147,92 @@ export async function getZendeskHomeRepairTickets(homeName) {
     return fetchZendeskData(endpoint);
 }
 
-// Obtener todos los tickets para estadísticas (manejando paginación automáticamente)
-export async function getAllZendeskTicketsForStats(homeName = null, fromDate = null, toDate = null) {
+/**
+ * Verifica si un error es el límite de respuesta de búsqueda de Zendesk
+ * @param {Error} error - Error a verificar
+ * @returns {boolean} true si es el error de límite de búsqueda
+ */
+function isSearchLimitError(error) {
+    if (!error.response || error.response.status !== 422) {
+        return false;
+    }
+    
+    const errorData = error.response.data;
+    if (errorData && errorData.description) {
+        return errorData.description.includes('Search Response Limits') ||
+               errorData.description.includes('response size was greater');
+    }
+    
+    return false;
+}
+
+/**
+ * Calcula la diferencia en días entre dos fechas
+ * @param {string|null} fromDate - Fecha inicio (YYYY-MM-DD) o null
+ * @param {string|null} toDate - Fecha fin (YYYY-MM-DD) o null
+ * @returns {number|null} Diferencia en días, o null si alguna fecha es null
+ */
+function getDaysBetween(fromDate, toDate) {
+    if (!fromDate || !toDate) {
+        return null;
+    }
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    return Math.ceil((to - from) / (1000 * 60 * 60 * 24));
+}
+
+/**
+ * Divide un rango de fechas en sub-rangos más pequeños
+ * @param {string} fromDate - Fecha inicio (YYYY-MM-DD)
+ * @param {string} toDate - Fecha fin (YYYY-MM-DD)
+ * @param {number} maxDays - Máximo de días por sub-rango (default: 180 días ~ 6 meses)
+ * @returns {Array} Array de objetos {fromDate, toDate}
+ */
+function splitDateRange(fromDate, toDate, maxDays = 180) {
+    const ranges = [];
+    let currentFrom = new Date(fromDate);
+    const finalTo = new Date(toDate);
+    
+    while (currentFrom <= finalTo) {
+        const currentTo = new Date(currentFrom);
+        currentTo.setDate(currentTo.getDate() + maxDays - 1); // -1 porque incluye el día inicial
+        
+        // No exceder la fecha final
+        if (currentTo > finalTo) {
+            currentTo.setTime(finalTo.getTime());
+        }
+        
+        ranges.push({
+            fromDate: currentFrom.toISOString().split('T')[0],
+            toDate: currentTo.toISOString().split('T')[0]
+        });
+        
+        // Mover al siguiente rango
+        currentFrom = new Date(currentTo);
+        currentFrom.setDate(currentFrom.getDate() + 1);
+    }
+    
+    return ranges;
+}
+
+/**
+ * Obtiene tickets de un rango específico con paginación automática
+ * @param {string} homeName - Nombre de la casa (opcional)
+ * @param {string} fromDate - Fecha inicio (YYYY-MM-DD)
+ * @param {string} toDate - Fecha fin (YYYY-MM-DD)
+ * @returns {Promise<Array>} Array de tickets
+ */
+async function getTicketsForDateRange(homeName, fromDate, toDate) {
     const HOME_FIELD_ID = 17925940459804;
-    
-    // Validar formato de fecha si se proporciona
-    if (fromDate) {
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(fromDate)) {
-            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
-        }
-    }
-    
-    if (toDate) {
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(toDate)) {
-            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
-        }
-    }
+    const per_page = 100;
+    const MAX_RETRIES = 2; // Máximo de reintentos con división de rango
     
     let allTickets = [];
     let page = 1;
     let hasMorePages = true;
-    const per_page = 100; // Usar el máximo permitido por Zendesk para eficiencia
-    
-    console.log('Obteniendo todos los tickets para estadísticas...');
     
     while (hasMorePages) {
-        let response;
-        
-        // Si hay filtros, usar la API de búsqueda
-        if (homeName || fromDate || toDate) {
+        try {
             let queryParts = [];
             
             if (homeName) {
@@ -196,13 +251,13 @@ export async function getAllZendeskTicketsForStats(homeName = null, fromDate = n
             const encodedQuery = encodeURIComponent(query);
             const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&include=users`;
             
-            console.log(`Página ${page}: Query = "${query}"`);
-            response = await fetchZendeskData(endpoint);
+            console.log(`  Página ${page}: Query = "${query}"`);
+            const response = await fetchZendeskData(endpoint);
             
             // En la API de búsqueda, los tickets están en 'results'
             if (response.results && response.results.length > 0) {
                 allTickets = allTickets.concat(response.results);
-                console.log(`Página ${page}: ${response.results.length} tickets obtenidos. Total acumulado: ${allTickets.length}`);
+                console.log(`  Página ${page}: ${response.results.length} tickets obtenidos. Total acumulado: ${allTickets.length}`);
                 
                 // Verificar si hay más páginas
                 hasMorePages = response.results.length === per_page;
@@ -210,31 +265,154 @@ export async function getAllZendeskTicketsForStats(homeName = null, fromDate = n
             } else {
                 hasMorePages = false;
             }
-        } else {
-            // Sin filtros, usar la API estándar
+            
+            // Seguridad: evitar bucles infinitos
+            if (page > 100) {
+                console.warn(`  ⚠️ Se alcanzó el límite de 100 páginas (10,000 tickets). Deteniendo la consulta para este rango.`);
+                break;
+            }
+        } catch (error) {
+            // Si es el error de límite de búsqueda y aún podemos dividir más
+            const daysDiff = getDaysBetween(fromDate, toDate);
+            if (isSearchLimitError(error) && daysDiff !== null && daysDiff > 30) {
+                console.warn(`  ⚠️ Límite de búsqueda alcanzado en página ${page} para rango ${fromDate || 'sin inicio'} - ${toDate || 'sin fin'}.`);
+                console.warn(`  ✅ Tickets obtenidos hasta ahora: ${allTickets.length}. Dividiendo rango para continuar...`);
+                
+                // Guardar los tickets obtenidos hasta ahora
+                const ticketsObtained = [...allTickets];
+                
+                // Dividir el rango en mitades y obtener cada parte recursivamente
+                const halfDays = Math.floor(daysDiff / 2);
+                
+                const midDate = new Date(fromDate);
+                midDate.setDate(midDate.getDate() + halfDays);
+                const midDateStr = midDate.toISOString().split('T')[0];
+                
+                console.log(`  Dividiendo en dos sub-rangos: ${fromDate} - ${midDateStr} y ${midDateStr} - ${toDate}`);
+                
+                // Obtener primera mitad (si no hemos obtenido ya todos los tickets del rango)
+                // Si ya tenemos tickets, probablemente los del primer rango ya están incluidos
+                // pero necesitamos obtener los del segundo rango
+                let remainingTickets = [];
+                
+                // Si ya tenemos tickets, intentar obtener solo los del segundo rango
+                // (para evitar duplicados)
+                if (ticketsObtained.length > 0) {
+                    // Obtener segunda mitad
+                    remainingTickets = await getTicketsForDateRange(homeName, midDateStr, toDate);
+                    // Combinar con los tickets ya obtenidos
+                    return [...ticketsObtained, ...remainingTickets];
+                } else {
+                    // Si no hay tickets obtenidos, dividir normalmente
+                    const firstHalf = await getTicketsForDateRange(homeName, fromDate, midDateStr);
+                    const secondHalf = await getTicketsForDateRange(homeName, midDateStr, toDate);
+                    return [...firstHalf, ...secondHalf];
+                }
+            } else {
+                // Si no es el error de límite o el rango ya es muy pequeño, lanzar el error
+                console.error(`  ❌ Error en página ${page}:`, error.response?.data?.description || error.message);
+                throw error;
+            }
+        }
+    }
+    
+    return allTickets;
+}
+
+// Obtener todos los tickets para estadísticas (manejando paginación automáticamente y límites de Zendesk)
+export async function getAllZendeskTicketsForStats(homeName = null, fromDate = null, toDate = null) {
+    const HOME_FIELD_ID = 17925940459804;
+    
+    // Validar formato de fecha si se proporciona
+    if (fromDate) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(fromDate)) {
+            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
+        }
+    }
+    
+    if (toDate) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(toDate)) {
+            throw new Error('El formato de fecha debe ser YYYY-MM-DD');
+        }
+    }
+    
+    console.log('Obteniendo todos los tickets para estadísticas...');
+    
+    // Si no hay filtros de fecha, usar la API estándar
+    if (!fromDate && !toDate && !homeName) {
+        let allTickets = [];
+        let page = 1;
+        let hasMorePages = true;
+        const per_page = 100;
+        
+        while (hasMorePages) {
             const endpoint = `/tickets.json?page=${page}&per_page=${per_page}&include=users`;
-            
             console.log(`Página ${page}: Sin filtros, usando API estándar`);
-            response = await fetchZendeskData(endpoint);
+            const response = await fetchZendeskData(endpoint);
             
-            // En la API estándar, los tickets están en 'tickets'
             if (response.tickets && response.tickets.length > 0) {
                 allTickets = allTickets.concat(response.tickets);
                 console.log(`Página ${page}: ${response.tickets.length} tickets obtenidos. Total acumulado: ${allTickets.length}`);
                 
-                // Verificar si hay más páginas
                 hasMorePages = response.tickets.length === per_page;
                 page++;
             } else {
                 hasMorePages = false;
             }
+            
+            if (page > 1000) {
+                console.warn('Se alcanzó el límite de 1000 páginas. Deteniendo la consulta.');
+                break;
+            }
         }
         
-        // Seguridad: evitar bucles infinitos
-        if (page > 1000) {
-            console.warn('Se alcanzó el límite de 1000 páginas. Deteniendo la consulta.');
-            break;
+        console.log(`Consulta completada. Total de tickets obtenidos: ${allTickets.length}`);
+        return {
+            tickets: allTickets,
+            count: allTickets.length
+        };
+    }
+    
+    // Si hay filtros de fecha, usar estrategia de división de rangos
+    let allTickets = [];
+    
+    if (fromDate && toDate) {
+        // Calcular días entre fechas
+        const daysDiff = getDaysBetween(fromDate, toDate);
+        console.log(`📅 Rango de fechas: ${fromDate} a ${toDate} (${daysDiff} días)`);
+        
+        // Si el rango es mayor a 3 meses (90 días), dividirlo automáticamente para evitar límites
+        // Reducimos el umbral a 90 días para ser más conservadores y evitar el error 422
+        if (daysDiff > 90) {
+            console.log(`🔀 Rango de fechas grande (${daysDiff} días). Dividiendo automáticamente en sub-rangos de 90 días...`);
+            const dateRanges = splitDateRange(fromDate, toDate, 90);
+            console.log(`📊 Dividido en ${dateRanges.length} sub-rangos`);
+            
+            for (let i = 0; i < dateRanges.length; i++) {
+                const range = dateRanges[i];
+                console.log(`\n🔄 Procesando sub-rango ${i + 1}/${dateRanges.length}: ${range.fromDate} - ${range.toDate}`);
+                
+                const tickets = await getTicketsForDateRange(homeName, range.fromDate, range.toDate);
+                allTickets = allTickets.concat(tickets);
+                
+                console.log(`✅ Sub-rango ${i + 1} completado: ${tickets.length} tickets. Total acumulado: ${allTickets.length}`);
+            }
+        } else {
+            // Rango pequeño, obtener directamente
+            console.log(`📥 Rango pequeño (${daysDiff} días). Obteniendo tickets directamente...`);
+            allTickets = await getTicketsForDateRange(homeName, fromDate, toDate);
         }
+    } else if (fromDate) {
+        // Solo fecha inicio, usar estrategia de paginación normal con manejo de errores
+        allTickets = await getTicketsForDateRange(homeName, fromDate, null);
+    } else if (toDate) {
+        // Solo fecha fin, usar estrategia de paginación normal con manejo de errores
+        allTickets = await getTicketsForDateRange(homeName, null, toDate);
+    } else if (homeName) {
+        // Solo filtro de casa, usar estrategia de paginación normal con manejo de errores
+        allTickets = await getTicketsForDateRange(homeName, null, null);
     }
     
     console.log(`Consulta completada. Total de tickets obtenidos: ${allTickets.length}`);
