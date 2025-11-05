@@ -130,15 +130,25 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
     try {
         const response = await getZendeskTickets(page, per_page, sort_by, sort_order, homeName, fromDate, status);
 
-        // Precargar todos los datos necesarios en paralelo
+        // Obtener todos los tickets de la respuesta
+        const allTickets = response.tickets || response.results;
+        
+        // Filtrar tickets que deben ser descartados (ej: tickets de propuesta de mejora)
+        const tickets = allTickets.filter(ticket => !shouldDiscardTicket(ticket));
+        
+        const discardedCount = allTickets.length - tickets.length;
+        if (discardedCount > 0) {
+            console.log(`📊 ${discardedCount} ticket(s) descartado(s) por custom_status prohibido`);
+        }
+
+        // Precargar todos los datos necesarios en paralelo (solo para tickets filtrados)
         await Promise.all([
-            homeStatsHelpers.loadUserNames(response.tickets || response.results),
-            homeStatsHelpers.loadGroupNames(response.tickets || response.results),
+            homeStatsHelpers.loadUserNames(tickets),
+            homeStatsHelpers.loadGroupNames(tickets),
             homeStatsHelpers.preloadCustomFieldsOptions()
         ]);
 
         // Formatear todos los tickets (ahora es súper rápido)
-        const tickets = response.tickets || response.results;
         const formattedTickets = tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
         );
@@ -147,7 +157,7 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
             status: 'success',
             data: {
                 tickets: formattedTickets,
-                count: response.count,
+                count: formattedTickets.length, // Contar solo tickets filtrados
                 next_page: response.next_page,
                 previous_page: response.previous_page,
                 home_filter: homeName || null
