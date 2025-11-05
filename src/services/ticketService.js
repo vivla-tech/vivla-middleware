@@ -157,7 +157,7 @@ export async function getTickets(page = 1, per_page = 25, sort_by = 'created_at'
             status: 'success',
             data: {
                 tickets: formattedTickets,
-                count: formattedTickets.length, // Contar solo tickets filtrados
+                count: response.count - discardedCount, // Contar solo tickets filtrados
                 next_page: response.next_page,
                 previous_page: response.previous_page,
                 home_filter: homeName || null
