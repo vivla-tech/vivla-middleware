@@ -8,6 +8,7 @@ import { homeStaysStats } from '../services/staysService.js';
 export async function getHomeStaysStatsController(req, res) {
     try {
         const { hid } = req.params;
+        const { from } = req.query;
 
         // Validar que se proporcione el hid
         if (!hid) {
@@ -17,10 +18,30 @@ export async function getHomeStaysStatsController(req, res) {
             });
         }
 
-        console.log(`Obteniendo estadísticas de estancias para casa con hid: ${hid}`);
+        // Validar formato de fecha si se proporciona
+        if (from) {
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!dateRegex.test(from)) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'El parámetro from debe tener el formato YYYY-MM-DD (ejemplo: 2024-11-30)'
+                });
+            }
+            
+            // Validar que sea una fecha válida
+            const dateObj = new Date(from + 'T00:00:00.000Z');
+            if (isNaN(dateObj.getTime())) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'El parámetro from no es una fecha válida'
+                });
+            }
+        }
+
+        console.log(`Obteniendo estadísticas de estancias para casa con hid: ${hid}${from ? ` (desde ${from})` : ''}`);
 
         // Obtener estadísticas del servicio
-        const result = await homeStaysStats(hid);
+        const result = await homeStaysStats(hid, from || null);
 
         if (result.status === 'error') {
             // Si es error de casa no encontrada, devolver 404

@@ -1,4 +1,4 @@
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase.js';
 
 /**
@@ -69,9 +69,10 @@ function calculateLastAction(booksSnapshot, currentDate) {
 /**
  * Obtiene estadísticas de estancias (books) para una casa específica por su hid
  * @param {string} hid - ID único de la casa
+ * @param {string} [fromDate] - Fecha opcional en formato YYYY-MM-DD para filtrar por start_date_ts (inclusiva)
  * @returns {Promise<Object>} Objeto con estadísticas de estancias agrupadas por progress
  */
-export async function homeStaysStats(hid) {
+export async function homeStaysStats(hid, fromDate = null) {
     try {
         console.log(`Obteniendo estadísticas de estancias para casa con hid: ${hid}`);
 
@@ -97,10 +98,33 @@ export async function homeStaysStats(hid) {
 
         // Acceder a la subcolección 'books' del documento home
         const booksRef = collection(db, 'homes', homeDocId, 'books');
-        const booksQuery = query(booksRef, where('status', '==', 'booked'));
+        
+        // Construir la query con filtros dinámicos
+        let booksQuery;
+        if (fromDate) {
+            // Convertir la fecha string YYYY-MM-DD a Timestamp de Firestore (inicio del día para inclusivo)
+            const dateObj = new Date(fromDate + 'T00:00:00.000Z');
+            const fromTimestamp = Timestamp.fromDate(dateObj);
+            
+            console.log(`Filtrando books con start_date_ts >= ${fromDate} (${fromTimestamp.toDate().toISOString()})`);
+            
+            booksQuery = query(
+                booksRef, 
+                where('status', '==', 'booked'),
+                where('type', 'in', ['book', 'rent', 'exchange']),
+                where('start_date_ts', '>=', fromTimestamp)
+            );
+        } else {
+            booksQuery = query(
+                booksRef, 
+                where('status', '==', 'booked'),
+                where('type', 'in', ['book', 'rent', 'exchange'])
+            );
+        }
+        
         const booksSnapshot = await getDocs(booksQuery);
 
-        console.log(`Se encontraron ${booksSnapshot.size} books con status 'booked'`);
+        console.log(`Se encontraron ${booksSnapshot.size} books con status 'booked' y type en ['book', 'rent', 'exchange']${fromDate ? ` desde ${fromDate}` : ''}`);
 
         // Inicializar contadores para los 3 tipos de progress conocidos
         const progressStats = {

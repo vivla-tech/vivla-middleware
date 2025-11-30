@@ -9,7 +9,7 @@ const router = express.Router();
  * /stays/{hid}/stats:
  *   get:
  *     summary: Obtener estadísticas de estancias de una casa específica
- *     description: Obtiene estadísticas de las estancias (books) con status 'booked' de una casa específica, agrupadas por el campo 'progress'
+ *     description: Obtiene estadísticas de las estancias (books) con status 'booked' de una casa específica, agrupadas por el campo 'progress'. Opcionalmente puede filtrar por fecha de inicio usando el parámetro 'from'.
  *     tags:
  *       - Estancias
  *     parameters:
@@ -20,6 +20,14 @@ const router = express.Router();
  *           type: string
  *         description: ID único de la casa
  *         example: "39121124"
+ *       - in: query
+ *         name: from
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Fecha opcional en formato YYYY-MM-DD para filtrar estancias cuyo start_date_ts sea mayor o igual a esta fecha (inclusiva)
+ *         example: "2024-11-30"
  *     responses:
  *       200:
  *         description: Estadísticas de estancias obtenidas exitosamente
@@ -71,7 +79,7 @@ const router = express.Router();
  *                           description: Número de estancias con progress 'completed'
  *                           example: 2
  *       400:
- *         description: Parámetro hid requerido
+ *         description: Parámetro hid requerido o formato de fecha inválido
  *         content:
  *           application/json:
  *             schema:
@@ -83,6 +91,7 @@ const router = express.Router();
  *                 message:
  *                   type: string
  *                   example: El parámetro hid es requerido
+ *                   example: El parámetro from debe tener el formato YYYY-MM-DD (ejemplo: 2024-11-30)
  *       404:
  *         description: Casa no encontrada
  *         content:
