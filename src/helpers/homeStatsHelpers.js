@@ -27,18 +27,27 @@ let customFieldCache = {};
 
 export const homeStatsHelpers = {
     // Obtener todas las opciones configuradas del custom field HOME_FIELD_ID desde ticket_fields
-    async getAllZendeskHomeValues() {
+    async getAllZendeskHomeValues(retryCount = 0, maxRetries = 3) {
         try {
-            console.log('Obteniendo todas las opciones configuradas del custom field HOME_FIELD_ID...');
+            console.log(`🔄 Obteniendo todas las opciones configuradas del custom field HOME_FIELD_ID... (intento ${retryCount + 1}/${maxRetries + 1})`);
+            console.log('🔍 URL completa:', `${zendeskConfig.url}/ticket_fields.json`);
 
+            const startTime = Date.now();
             const response = await axios.get(
                 `${zendeskConfig.url}/ticket_fields.json`,
                 {
-                    headers: zendeskConfig.headers
+                    headers: zendeskConfig.headers,
+                    timeout: 30000 // 30 segundos de timeout
                 }
             );
+            const duration = Date.now() - startTime;
+            
+            console.log(`✅ Respuesta recibida de Zendesk (${duration}ms)`);
+            console.log('🔍 Status HTTP:', response.status);
+            console.log('🔍 Número de campos recibidos:', response.data?.ticket_fields?.length || 0);
 
             if (!response.data || !response.data.ticket_fields) {
+                console.error('❌ No se encontraron campos de ticket en la respuesta de Zendesk');
                 throw new Error('No se encontraron campos de ticket en Zendesk');
             }
 
@@ -48,11 +57,15 @@ export const homeStatsHelpers = {
             );
 
             if (!homeField) {
+                console.error(`❌ No se encontró el custom field con ID: ${HOME_FIELD_ID}`);
+                console.error('🔍 IDs de campos disponibles:', response.data.ticket_fields.map(f => f.id).slice(0, 10));
                 throw new Error(`No se encontró el custom field con ID: ${HOME_FIELD_ID}`);
             }
 
+            console.log(`✅ Campo HOME encontrado: "${homeField.title}" (ID: ${homeField.id})`);
+
             if (!homeField.custom_field_options || homeField.custom_field_options.length === 0) {
-                console.log('El custom field no tiene opciones configuradas');
+                console.log('⚠️ El custom field no tiene opciones configuradas');
                 return {
                     status: 'success',
                     data: [],
@@ -63,7 +76,8 @@ export const homeStatsHelpers = {
             // Extraer todos los valores de las opciones configuradas
             const homeValues = homeField.custom_field_options.map(option => option.value);
             
-            console.log(`Se encontraron ${homeValues.length} opciones configuradas para el custom field HOME_FIELD_ID`);
+            console.log(`✅ Se encontraron ${homeValues.length} opciones configuradas para el custom field HOME_FIELD_ID`);
+            console.log('🔍 Primeras 5 opciones:', homeValues.slice(0, 5));
 
             return {
                 status: 'success',
@@ -77,11 +91,57 @@ export const homeStatsHelpers = {
             };
 
         } catch (error) {
-            console.error('Error al obtener opciones del custom field HOME_FIELD_ID:', error);
+            console.error(`❌ Error al obtener opciones del custom field HOME_FIELD_ID (intento ${retryCount + 1}/${maxRetries + 1}):`, error);
+            console.error('❌ Tipo de error:', error.constructor.name);
+            console.error('❌ Mensaje:', error.message);
+            
+            if (error.response) {
+                console.error('❌ Status HTTP:', error.response.status);
+                console.error('❌ Datos de respuesta:', JSON.stringify(error.response.data, null, 2));
+            } else if (error.request) {
+                console.error('❌ No se recibió respuesta de Zendesk (posible timeout o error de red)');
+                console.error('❌ Request config:', {
+                    url: error.config?.url,
+                    method: error.config?.method,
+                    timeout: error.config?.timeout
+                });
+            }
+            
+            if (error.code) {
+                console.error('❌ Código de error:', error.code);
+            }
+            
+            // Determinar si es un error transitorio que vale la pena reintentar
+            const isTransientError = 
+                !error.response || // Error de red/timeout
+                error.response.status === 429 || // Rate limiting
+                error.response.status >= 500 || // Errores del servidor
+                error.code === 'ECONNABORTED' || // Timeout
+                error.code === 'ETIMEDOUT' || // Timeout
+                error.code === 'ENOTFOUND' || // DNS
+                error.code === 'ECONNRESET'; // Conexión reseteada
+            
+            // Si es un error transitorio y aún tenemos reintentos disponibles, reintentar
+            if (isTransientError && retryCount < maxRetries) {
+                const backoffDelay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff: 1s, 2s, 4s, max 10s
+                console.log(`⏳ Reintentando en ${backoffDelay}ms... (error transitorio detectado)`);
+                
+                await new Promise(resolve => setTimeout(resolve, backoffDelay));
+                return await this.getAllZendeskHomeValues(retryCount + 1, maxRetries);
+            }
+            
             return {
                 status: 'error',
                 message: 'Error al obtener opciones del custom field HOME_FIELD_ID',
-                error: error.message
+                error: error.message,
+                errorDetails: {
+                    type: error.constructor.name,
+                    code: error.code,
+                    status: error.response?.status,
+                    responseData: error.response?.data,
+                    isTransientError,
+                    retriesAttempted: retryCount
+                }
             };
         }
     },

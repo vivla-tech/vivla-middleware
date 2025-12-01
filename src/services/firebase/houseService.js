@@ -9,6 +9,8 @@ let houseIdToNameCache = null;
 
 // Cache para valores de casas de Zendesk
 let zendeskHomeValuesCache = null;
+// Promesa compartida para evitar múltiples inicializaciones simultáneas (race condition)
+let zendeskCacheInitializationPromise = null;
 
 export async function getHouseIdByName(houseName) {
     try {
@@ -81,23 +83,64 @@ async function initializeHouseCache() {
 }
 
 async function initializeZendeskHomeValuesCache() {
-    try {
-        if (!zendeskHomeValuesCache) {
-            console.log('Inicializando cache de valores de casas de Zendesk...');
+    // Si ya hay una inicialización en curso, esperar a que termine
+    if (zendeskCacheInitializationPromise) {
+        console.log('⏳ Esperando a que termine la inicialización del cache de Zendesk en curso...');
+        return await zendeskCacheInitializationPromise;
+    }
+    
+    // Si el cache ya está inicializado correctamente, no hacer nada
+    if (zendeskHomeValuesCache !== null && Array.isArray(zendeskHomeValuesCache) && zendeskHomeValuesCache.length > 0) {
+        console.log(`✅ Cache de Zendesk ya inicializado con ${zendeskHomeValuesCache.length} valores`);
+        return;
+    }
+    
+    // Crear una promesa compartida para la inicialización (evita race conditions)
+    zendeskCacheInitializationPromise = (async () => {
+        try {
+            console.log('🔄 Inicializando cache de valores de casas de Zendesk...');
+            console.log('🔍 URL de Zendesk configurada:', process.env.ZENDESK_URL ? '✓' : '✗');
+            console.log('🔍 Email de Zendesk configurado:', process.env.ZENDESK_EMAIL ? '✓' : '✗');
+            console.log('🔍 Token de Zendesk configurado:', process.env.ZENDESK_TOKEN ? '✓' : '✗');
+            
+            const startTime = Date.now();
+            // getAllZendeskHomeValues ahora tiene retry logic incorporado
             const result = await homeStatsHelpers.getAllZendeskHomeValues();
+            const duration = Date.now() - startTime;
             
             if (result.status === 'success') {
                 zendeskHomeValuesCache = result.data;
-                console.log(`Cache de Zendesk inicializado con ${zendeskHomeValuesCache.length} valores`);
+                console.log(`✅ Cache de Zendesk inicializado exitosamente con ${zendeskHomeValuesCache.length} valores (${duration}ms)`);
             } else {
-                console.error('Error al obtener valores de Zendesk:', result.message);
-                zendeskHomeValuesCache = [];
+                console.error('❌ Error al obtener valores de Zendesk después de todos los reintentos:', result.message);
+                console.error('❌ Detalles del error:', result.error);
+                if (result.errorDetails) {
+                    console.error('❌ Reintentos intentados:', result.errorDetails.retriesAttempted);
+                    console.error('❌ Error transitorio:', result.errorDetails.isTransientError ? 'Sí' : 'No');
+                }
+                // Mantener null para permitir reintentos en la próxima llamada
+                zendeskHomeValuesCache = null;
             }
+        } catch (error) {
+            console.error('❌ Error al inicializar cache de valores de Zendesk:', error);
+            console.error('❌ Tipo de error:', error.constructor.name);
+            console.error('❌ Mensaje de error:', error.message);
+            if (error.response) {
+                console.error('❌ Status HTTP:', error.response.status);
+                console.error('❌ Datos de respuesta:', error.response.data);
+            }
+            if (error.code) {
+                console.error('❌ Código de error:', error.code);
+            }
+            // Mantener null para permitir reintentos en la próxima llamada
+            zendeskHomeValuesCache = null;
+        } finally {
+            // Limpiar la promesa para permitir nuevos intentos si falló
+            zendeskCacheInitializationPromise = null;
         }
-    } catch (error) {
-        console.error('Error al inicializar cache de valores de Zendesk:', error);
-        zendeskHomeValuesCache = [];
-    }
+    })();
+    
+    return await zendeskCacheInitializationPromise;
 }
 
 /**
@@ -110,8 +153,9 @@ export async function findZendeskNameForHouse(firebaseHouseName) {
         // Inicializar cache si es necesario
         await initializeZendeskHomeValuesCache();
         
-        if (!zendeskHomeValuesCache || zendeskHomeValuesCache.length === 0) {
-            console.log('No hay valores de Zendesk disponibles para comparar');
+        // Verificar estado del cache después de la inicialización
+        if (!zendeskHomeValuesCache || !Array.isArray(zendeskHomeValuesCache) || zendeskHomeValuesCache.length === 0) {
+            console.log(`⚠️ No hay valores de Zendesk disponibles para comparar (cache: ${zendeskHomeValuesCache === null ? 'null' : 'vacío'})`);
             return null;
         }
 
@@ -122,14 +166,15 @@ export async function findZendeskNameForHouse(firebaseHouseName) {
         );
 
         if (mostSimilar) {
-            console.log(`Casa "${firebaseHouseName}" -> Zendesk: "${mostSimilar}"`);
+            console.log(`✅ Casa "${firebaseHouseName}" -> Zendesk: "${mostSimilar}"`);
         } else {
-            console.log(`No se encontró coincidencia para casa: "${firebaseHouseName}"`);
+            console.log(`ℹ️ No se encontró coincidencia para casa: "${firebaseHouseName}"`);
         }
 
         return mostSimilar;
     } catch (error) {
-        console.error('Error al encontrar nombre de Zendesk para casa:', error);
+        console.error('❌ Error al encontrar nombre de Zendesk para casa:', error);
+        console.error('❌ Casa:', firebaseHouseName);
         return null;
     }
 }
@@ -193,7 +238,11 @@ export async function getAllHousesWithZendeskNames() {
         console.log(`Se encontraron ${houses.length} casas en total`);
 
         // Agregar zendesk_name a cada casa
-        console.log('Procesando nombres de Zendesk para cada casa...');
+        console.log(`🔄 Procesando nombres de Zendesk para ${houses.length} casas...`);
+        
+        // Asegurar que el cache esté inicializado antes de procesar todas las casas
+        await initializeZendeskHomeValuesCache();
+        
         const housesWithZendeskNames = await Promise.all(
             houses.map(async (house) => {
                 const zendeskName = await findZendeskNameForHouse(house.name);
@@ -204,7 +253,9 @@ export async function getAllHousesWithZendeskNames() {
             })
         );
 
-        console.log('Procesamiento de nombres de Zendesk completado');
+        // Contar cuántas casas tienen zendesk_name
+        const housesWithZendeskName = housesWithZendeskNames.filter(h => h.zendesk_name !== null).length;
+        console.log(`✅ Procesamiento de nombres de Zendesk completado: ${housesWithZendeskName}/${houses.length} casas tienen zendesk_name`);
 
         return {
             status: 'success',
