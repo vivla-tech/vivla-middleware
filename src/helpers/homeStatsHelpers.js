@@ -294,6 +294,7 @@ export const homeStatsHelpers = {
             updated_at: ticket.updated_at,
             priority: ticket.priority,
             requester_name: this.getUserName(ticket, 'requester'),
+            requester_id: ticket.requester_id,
             assignee_name: this.getUserName(ticket, 'assignee'),
             group_name: this.getGroupName(ticket),
             followers_names: this.getFollowersNames(ticket),
