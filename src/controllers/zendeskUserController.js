@@ -1,4 +1,4 @@
-import { getZendeskUsersService, getZendeskUserRequestedTicketsService } from '../services/zendeskUserService.js';
+import { getZendeskUsersService, getZendeskUserRequestedTicketsService, getHomeTicketsRequestersService } from '../services/zendeskUserService.js';
 
 /**
  * Controlador para obtener la lista de usuarios de Zendesk
@@ -123,6 +123,51 @@ export async function getZendeskUserTicketsController(req, res) {
         return res.status(500).json({
             status: 'error',
             message: 'Error interno del servidor al obtener tickets del usuario',
+            error: error.message
+        });
+    }
+}
+
+/**
+ * Controlador para obtener el listado de usuarios que han creado tickets en una casa específica
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+export async function getHomeTicketsRequestersController(req, res) {
+    try {
+        // Obtener parámetros de query
+        const { home, from } = req.query;
+        
+        // Validar que home existe (es obligatorio)
+        if (!home) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'El parámetro home es obligatorio',
+                data: null
+            });
+        }
+        
+        // Llamar al servicio
+        const result = await getHomeTicketsRequestersService(home, from);
+        
+        // Si hay error, devolver el código de estado apropiado
+        if (result.status === 'error') {
+            // Si es un error de validación, devolver 400
+            if (result.message.includes('obligatorio') || result.message.includes('formato')) {
+                return res.status(400).json(result);
+            }
+            
+            // Error genérico, devolver 500
+            return res.status(500).json(result);
+        }
+        
+        // Éxito, devolver 200
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error('Error en getHomeTicketsRequestersController:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error interno del servidor al obtener requesters de tickets',
             error: error.message
         });
     }
