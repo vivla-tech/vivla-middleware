@@ -10,6 +10,7 @@ import annualRevisionRoutes from './routes/annualRevisionRoutes.js';
 import staysRoutes from './routes/staysRoutes.js';
 import roomImagesRoutes from './routes/roomImagesRoutes.js';
 import proposalRoutes from './routes/proposalRoutes.js';
+import zendeskUserRoutes from './routes/zendeskUserRoutes.js';
 import swaggerDocs from './config/swagger.js';
 import { apiKeyAuth } from './middleware/auth.js';
 import cors, { corsOptions, corsErrorHandler } from './middleware/cors.js';
@@ -47,6 +48,7 @@ app.use('/v1/getAnnualHomeRevision', annualRevisionRoutes);
 app.use('/v1/stays', staysRoutes);
 app.use('/v1/homes', roomImagesRoutes);
 app.use('/api/proposals', proposalRoutes);
+app.use('/v1/zendesk-users', zendeskUserRoutes);
 
 // Manejo de errores de CORS
 app.use(corsErrorHandler);
