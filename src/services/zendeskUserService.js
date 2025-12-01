@@ -1,4 +1,5 @@
 import { getZendeskUsers, getZendeskUserRequestedTickets } from '../api/zendeskApi.js';
+import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 
 /**
  * Obtiene la lista de usuarios de Zendesk
@@ -44,13 +45,24 @@ export async function getZendeskUsersService(page = 1, per_page = 100, role = 'e
         // Llamar a la API de Zendesk
         const response = await getZendeskUsers(pageNum, perPageNum, role);
         
+        // Formatear usuarios para incluir solo los campos solicitados
+        const formattedUsers = (response.users || []).map(user => ({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            locale: user.locale,
+            role: user.role,
+            user_fields: user.user_fields || {}
+        }));
+        
         // La respuesta de Zendesk tiene la estructura:
         // { users: [...], count: number, next_page: url, previous_page: url }
         return {
             status: 'success',
             message: 'Usuarios obtenidos exitosamente',
             data: {
-                users: response.users || [],
+                users: formattedUsers,
                 count: response.count || 0,
                 next_page: response.next_page || null,
                 previous_page: response.previous_page || null,
@@ -131,13 +143,28 @@ export async function getZendeskUserRequestedTicketsService(userId, page = 1, pe
         // Llamar a la API de Zendesk
         const response = await getZendeskUserRequestedTickets(userIdNum, pageNum, perPageNum);
         
+        // Obtener todos los tickets de la respuesta
+        const tickets = response.tickets || [];
+        
+        // Precargar todos los datos necesarios en paralelo (igual que en ticketService)
+        await Promise.all([
+            homeStatsHelpers.loadUserNames(tickets),
+            homeStatsHelpers.loadGroupNames(tickets),
+            homeStatsHelpers.preloadCustomFieldsOptions()
+        ]);
+        
+        // Formatear todos los tickets con el mismo formato que /v1/tickets
+        const formattedTickets = tickets.map(ticket =>
+            homeStatsHelpers.formatTicket(ticket)
+        );
+        
         // La respuesta de Zendesk tiene la estructura:
         // { tickets: [...], count: number, next_page: url, previous_page: url }
         return {
             status: 'success',
             message: 'Tickets obtenidos exitosamente',
             data: {
-                tickets: response.tickets || [],
+                tickets: formattedTickets,
                 count: response.count || 0,
                 next_page: response.next_page || null,
                 previous_page: response.previous_page || null,
