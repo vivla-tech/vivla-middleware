@@ -430,4 +430,48 @@ export async function getZendeskUniqueHomes() {
 
 export async function getZendeskTicketsForHome(homeName) {
     return homeStatsHelpers.getTicketsForHome(homeName);
+}
+
+// Obtener lista de usuarios de Zendesk
+export async function getZendeskUsers(page = 1, per_page = 100, role = 'end-user') {
+    try {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            per_page: per_page.toString(),
+            role: role
+        });
+        
+        const endpoint = `/users.json?${params.toString()}`;
+        return fetchZendeskData(endpoint);
+    } catch (error) {
+        console.error('Error al obtener usuarios de Zendesk:', error);
+        throw error;
+    }
+}
+
+// Obtener un usuario específico por ID
+export async function getZendeskUserById(userId) {
+    try {
+        const endpoint = `/users/${userId}.json`;
+        return fetchZendeskData(endpoint);
+    } catch (error) {
+        console.error(`Error al obtener usuario ${userId}:`, error);
+        throw error;
+    }
+}
+
+// Obtener tickets solicitados por un usuario específico
+export async function getZendeskUserRequestedTickets(userId, page = 1, per_page = 25) {
+    try {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            per_page: per_page.toString()
+        });
+        
+        const endpoint = `/users/${userId}/tickets/requested.json?${params.toString()}`;
+        return fetchZendeskData(endpoint);
+    } catch (error) {
+        console.error(`Error al obtener tickets solicitados por el usuario ${userId}:`, error);
+        throw error;
+    }
 } 
