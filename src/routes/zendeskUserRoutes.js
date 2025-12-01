@@ -1,5 +1,5 @@
 import express from 'express';
-import { getZendeskUsersController } from '../controllers/zendeskUserController.js';
+import { getZendeskUsersController, getZendeskUserByIdController } from '../controllers/zendeskUserController.js';
 
 const router = express.Router();
 
@@ -143,6 +143,130 @@ const router = express.Router();
  *                   example: Error interno del servidor al obtener usuarios de Zendesk
  */
 router.get('/', getZendeskUsersController);
+
+/**
+ * @swagger
+ * /zendesk-users/{id}:
+ *   get:
+ *     summary: Obtener un usuario específico de Zendesk por su ID
+ *     description: Obtiene la información de un usuario específico de Zendesk usando su ID. Devuelve los mismos campos que la lista de usuarios.
+ *     tags:
+ *       - Zendesk Users
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID del usuario en Zendesk
+ *         schema:
+ *           type: integer
+ *           example: 123456
+ *     responses:
+ *       200:
+ *         description: Usuario obtenido exitosamente
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: success
+ *                 message:
+ *                   type: string
+ *                   example: Usuario obtenido exitosamente
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                           description: ID único del usuario
+ *                           example: 123456
+ *                         name:
+ *                           type: string
+ *                           description: Nombre del usuario
+ *                           example: "Juan Pérez"
+ *                         email:
+ *                           type: string
+ *                           description: Email del usuario
+ *                           example: "juan@example.com"
+ *                         phone:
+ *                           type: string
+ *                           nullable: true
+ *                           description: Teléfono del usuario
+ *                           example: "+1234567890"
+ *                         locale:
+ *                           type: string
+ *                           description: Locale del usuario
+ *                           example: "es"
+ *                         role:
+ *                           type: string
+ *                           description: Rol del usuario (end-user, agent, admin)
+ *                           example: "end-user"
+ *                         user_fields:
+ *                           type: object
+ *                           description: Campos personalizados del usuario
+ *                           example: {}
+ *       400:
+ *         description: Error de validación en los parámetros
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: El ID del usuario debe ser un número entero positivo
+ *                 data:
+ *                   type: null
+ *       404:
+ *         description: Usuario no encontrado en Zendesk
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: No se encontró el usuario con ID: 123456
+ *                 data:
+ *                   type: null
+ *       401:
+ *         description: Error de autenticación con Zendesk
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Error de autenticación
+ *       500:
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: error
+ *                 message:
+ *                   type: string
+ *                   example: Error interno del servidor al obtener usuario de Zendesk
+ */
+router.get('/:id', getZendeskUserByIdController);
 
 export default router;
 

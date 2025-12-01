@@ -1,4 +1,4 @@
-import { getZendeskUsersService, getZendeskUserRequestedTicketsService, getHomeTicketsRequestersService } from '../services/zendeskUserService.js';
+import { getZendeskUsersService, getZendeskUserByIdService, getZendeskUserRequestedTicketsService, getHomeTicketsRequestersService } from '../services/zendeskUserService.js';
 
 /**
  * Controlador para obtener la lista de usuarios de Zendesk
@@ -168,6 +168,56 @@ export async function getHomeTicketsRequestersController(req, res) {
         return res.status(500).json({
             status: 'error',
             message: 'Error interno del servidor al obtener requesters de tickets',
+            error: error.message
+        });
+    }
+}
+
+/**
+ * Controlador para obtener un usuario específico de Zendesk por su ID
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+export async function getZendeskUserByIdController(req, res) {
+    try {
+        // Obtener userId de los parámetros de la ruta
+        const { id } = req.params;
+        
+        // Validar que id existe
+        if (!id) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Se requiere el ID del usuario',
+                data: null
+            });
+        }
+        
+        // Llamar al servicio
+        const result = await getZendeskUserByIdService(id);
+        
+        // Si hay error, devolver el código de estado apropiado
+        if (result.status === 'error') {
+            // Si es un error de validación, devolver 400
+            if (result.message.includes('debe ser') || result.message.includes('Se requiere')) {
+                return res.status(400).json(result);
+            }
+            
+            // Si es un error de Zendesk (404, 401, etc.), devolver el código correspondiente
+            if (result.error && result.error.status_code) {
+                return res.status(result.error.status_code).json(result);
+            }
+            
+            // Error genérico, devolver 500
+            return res.status(500).json(result);
+        }
+        
+        // Éxito, devolver 200
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error('Error en getZendeskUserByIdController:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error interno del servidor al obtener usuario de Zendesk',
             error: error.message
         });
     }

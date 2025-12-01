@@ -1,4 +1,4 @@
-import { getZendeskUsers, getZendeskUserRequestedTickets } from '../api/zendeskApi.js';
+import { getZendeskUsers, getZendeskUserById, getZendeskUserRequestedTickets } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 import { getTickets } from './ticketService.js';
 
@@ -94,6 +94,96 @@ export async function getZendeskUsersService(page = 1, per_page = 100, role = 'e
         return {
             status: 'error',
             message: 'Error al obtener usuarios de Zendesk',
+            data: null,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * Obtiene un usuario específico de Zendesk por su ID
+ * @param {number|string} userId - ID del usuario en Zendesk
+ * @returns {Promise<Object>} Objeto con status, message y data
+ */
+export async function getZendeskUserByIdService(userId) {
+    try {
+        // Validar userId
+        const userIdNum = parseInt(userId, 10);
+        if (isNaN(userIdNum) || userIdNum < 1) {
+            return {
+                status: 'error',
+                message: 'El ID del usuario debe ser un número entero positivo',
+                data: null
+            };
+        }
+        
+        console.log(`Obteniendo usuario de Zendesk con ID: ${userIdNum}`);
+        
+        // Llamar a la API de Zendesk
+        const response = await getZendeskUserById(userIdNum);
+        
+        // Verificar que el usuario existe
+        if (!response.user) {
+            return {
+                status: 'error',
+                message: `No se encontró el usuario con ID: ${userIdNum}`,
+                data: null
+            };
+        }
+        
+        // Formatear usuario con los mismos campos que la lista
+        const formattedUser = {
+            id: response.user.id,
+            name: response.user.name,
+            email: response.user.email,
+            phone: response.user.phone,
+            locale: response.user.locale,
+            role: response.user.role,
+            user_fields: response.user.user_fields || {}
+        };
+        
+        return {
+            status: 'success',
+            message: 'Usuario obtenido exitosamente',
+            data: {
+                user: formattedUser
+            }
+        };
+    } catch (error) {
+        console.error('Error en getZendeskUserByIdService:', error);
+        
+        // Manejar errores específicos de Zendesk
+        if (error.response) {
+            const statusCode = error.response.status;
+            const errorMessage = error.response.data?.description || error.response.data?.error || 'Error al obtener usuario de Zendesk';
+            
+            // Si el usuario no existe, Zendesk devuelve 404
+            if (statusCode === 404) {
+                return {
+                    status: 'error',
+                    message: `No se encontró el usuario con ID: ${userId}`,
+                    data: null,
+                    error: {
+                        status_code: statusCode,
+                        details: error.response.data
+                    }
+                };
+            }
+            
+            return {
+                status: 'error',
+                message: errorMessage,
+                data: null,
+                error: {
+                    status_code: statusCode,
+                    details: error.response.data
+                }
+            };
+        }
+        
+        return {
+            status: 'error',
+            message: 'Error al obtener usuario de Zendesk',
             data: null,
             error: error.message
         };
