@@ -27,6 +27,14 @@ const router = express.Router();
  *           type: string
  *           format: date
  *           example: "2025-09-01"
+ *       - in: query
+ *         name: user_information
+ *         required: false
+ *         description: Si es true, incluye información completa del usuario (id, name, email, phone, locale, role, user_fields) para cada requester. Acepta "true"/"false" como string o booleano.
+ *         schema:
+ *           type: boolean
+ *           default: false
+ *           example: true
  *     responses:
  *       200:
  *         description: Listado de requesters obtenido exitosamente
@@ -71,6 +79,40 @@ const router = express.Router();
  *                             type: integer
  *                             description: Número de tickets creados por este usuario en la casa
  *                             example: 5
+ *                           user:
+ *                             type: object
+ *                             nullable: true
+ *                             description: Información completa del usuario (solo si user_information=true). Será null si el usuario no existe o hay un error al obtenerlo.
+ *                             properties:
+ *                               id:
+ *                                 type: integer
+ *                                 description: ID único del usuario
+ *                                 example: 123456
+ *                               name:
+ *                                 type: string
+ *                                 description: Nombre del usuario
+ *                                 example: "Juan Pérez"
+ *                               email:
+ *                                 type: string
+ *                                 description: Email del usuario
+ *                                 example: "juan@example.com"
+ *                               phone:
+ *                                 type: string
+ *                                 nullable: true
+ *                                 description: Teléfono del usuario
+ *                                 example: "+1234567890"
+ *                               locale:
+ *                                 type: string
+ *                                 description: Locale del usuario
+ *                                 example: "es"
+ *                               role:
+ *                                 type: string
+ *                                 description: Rol del usuario (end-user, agent, admin)
+ *                                 example: "end-user"
+ *                               user_fields:
+ *                                 type: object
+ *                                 description: Campos personalizados del usuario
+ *                                 example: {}
  *                     total_requesters:
  *                       type: integer
  *                       description: Número total de usuarios únicos que han creado tickets

@@ -310,9 +310,10 @@ export async function getZendeskUserRequestedTicketsService(userId, page = 1, pe
  * Obtiene el listado de usuarios que han creado tickets en una casa específica
  * @param {string} homeName - Nombre de la casa (obligatorio)
  * @param {string} fromDate - Fecha desde la cual filtrar (opcional, formato YYYY-MM-DD)
+ * @param {boolean} userInformation - Si es true, incluye información completa del usuario (opcional, default: false)
  * @returns {Promise<Object>} Objeto con status, message y data
  */
-export async function getHomeTicketsRequestersService(homeName, fromDate = null) {
+export async function getHomeTicketsRequestersService(homeName, fromDate = null, userInformation = false) {
     try {
         // Validar que homeName es obligatorio
         if (!homeName || typeof homeName !== 'string' || homeName.trim() === '') {
@@ -401,7 +402,43 @@ export async function getHomeTicketsRequestersService(homeName, fromDate = null)
         });
         
         // Convertir a array y ordenar por count descendente
-        const requesters = Object.values(requesterStats).sort((a, b) => b.count - a.count);
+        let requesters = Object.values(requesterStats).sort((a, b) => b.count - a.count);
+        
+        // Si se solicita información del usuario, obtenerla para cada requester
+        if (userInformation === true) {
+            console.log(`Obteniendo información completa de ${requesters.length} usuarios...`);
+            
+            // Obtener información de usuarios en paralelo
+            const userInfoPromises = requesters.map(async (requester) => {
+                try {
+                    const userResult = await getZendeskUserByIdService(requester.requester_id);
+                    
+                    if (userResult.status === 'success' && userResult.data && userResult.data.user) {
+                        return {
+                            ...requester,
+                            user: userResult.data.user
+                        };
+                    } else {
+                        // Si no se encontró el usuario, incluir con user: null
+                        return {
+                            ...requester,
+                            user: null
+                        };
+                    }
+                } catch (error) {
+                    console.error(`Error al obtener información del usuario ${requester.requester_id}:`, error);
+                    // En caso de error, incluir con user: null
+                    return {
+                        ...requester,
+                        user: null
+                    };
+                }
+            });
+            
+            // Esperar a que todas las promesas se resuelvan
+            requesters = await Promise.all(userInfoPromises);
+            console.log(`Información de usuarios obtenida para ${requesters.length} requesters`);
+        }
         
         // Calcular total de tickets
         const totalTickets = allTickets.length;

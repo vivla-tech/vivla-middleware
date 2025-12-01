@@ -136,7 +136,7 @@ export async function getZendeskUserTicketsController(req, res) {
 export async function getHomeTicketsRequestersController(req, res) {
     try {
         // Obtener parámetros de query
-        const { home, from } = req.query;
+        const { home, from, user_information } = req.query;
         
         // Validar que home existe (es obligatorio)
         if (!home) {
@@ -147,8 +147,18 @@ export async function getHomeTicketsRequestersController(req, res) {
             });
         }
         
+        // Convertir user_information a booleano (acepta "true"/"false" como string o booleano)
+        let userInformation = false;
+        if (user_information !== undefined && user_information !== null) {
+            if (typeof user_information === 'string') {
+                userInformation = user_information.toLowerCase() === 'true' || user_information === '1';
+            } else if (typeof user_information === 'boolean') {
+                userInformation = user_information;
+            }
+        }
+        
         // Llamar al servicio
-        const result = await getHomeTicketsRequestersService(home, from);
+        const result = await getHomeTicketsRequestersService(home, from, userInformation);
         
         // Si hay error, devolver el código de estado apropiado
         if (result.status === 'error') {
