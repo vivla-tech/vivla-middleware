@@ -447,4 +447,20 @@ export async function getZendeskUsers(page = 1, per_page = 100, role = 'end-user
         console.error('Error al obtener usuarios de Zendesk:', error);
         throw error;
     }
+}
+
+// Obtener tickets solicitados por un usuario específico
+export async function getZendeskUserRequestedTickets(userId, page = 1, per_page = 25) {
+    try {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            per_page: per_page.toString()
+        });
+        
+        const endpoint = `/users/${userId}/tickets/requested.json?${params.toString()}`;
+        return fetchZendeskData(endpoint);
+    } catch (error) {
+        console.error(`Error al obtener tickets solicitados por el usuario ${userId}:`, error);
+        throw error;
+    }
 } 

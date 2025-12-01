@@ -1,4 +1,4 @@
-import { getZendeskUsersService } from '../services/zendeskUserService.js';
+import { getZendeskUsersService, getZendeskUserRequestedTicketsService } from '../services/zendeskUserService.js';
 
 /**
  * Controlador para obtener la lista de usuarios de Zendesk
@@ -54,6 +54,75 @@ export async function getZendeskUsersController(req, res) {
         return res.status(500).json({
             status: 'error',
             message: 'Error interno del servidor al obtener usuarios de Zendesk',
+            error: error.message
+        });
+    }
+}
+
+/**
+ * Controlador para obtener los tickets solicitados por un usuario específico de Zendesk
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+export async function getZendeskUserTicketsController(req, res) {
+    try {
+        // Obtener userId de los parámetros de la ruta
+        const { userId } = req.params;
+        
+        // Validar que userId existe
+        if (!userId) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Se requiere el ID del usuario',
+                data: null
+            });
+        }
+        
+        // Obtener parámetros de query con valores por defecto
+        const { page = 1, per_page = 25 } = req.query;
+        
+        // Llamar al servicio
+        const result = await getZendeskUserRequestedTicketsService(userId, page, per_page);
+        
+        // Si hay error, devolver el código de estado apropiado
+        if (result.status === 'error') {
+            // Si es un error de validación, devolver 400
+            if (result.message.includes('debe ser') || result.message.includes('Se requiere')) {
+                return res.status(400).json(result);
+            }
+            
+            // Si es un error de Zendesk (404, 401, etc.), devolver el código correspondiente
+            if (result.error && result.error.status_code) {
+                return res.status(result.error.status_code).json(result);
+            }
+            
+            // Error genérico, devolver 500
+            return res.status(500).json(result);
+        }
+        
+        // Construir URLs completas para la paginación si existen
+        const protocol = req.protocol;
+        const host = req.get('host');
+        
+        if (result.data.next_page) {
+            // Construir URL de siguiente página
+            const nextPageNum = parseInt(page, 10) + 1;
+            result.data.next_page = `${protocol}://${host}/v1/zendesk-user-tickets/${userId}?page=${nextPageNum}&per_page=${per_page}`;
+        }
+        
+        if (result.data.previous_page) {
+            // Construir URL de página anterior
+            const prevPageNum = parseInt(page, 10) - 1;
+            result.data.previous_page = `${protocol}://${host}/v1/zendesk-user-tickets/${userId}?page=${prevPageNum}&per_page=${per_page}`;
+        }
+        
+        // Éxito, devolver 200
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error('Error en getZendeskUserTicketsController:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error interno del servidor al obtener tickets del usuario',
             error: error.message
         });
     }
