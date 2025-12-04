@@ -1,101 +1,29 @@
 // Datos estáticos de revisiones anuales de las casas
 const ANNUAL_REVISION_DATA = [
-  {
-    "HomeName": "Fir",
-    "AnnualRevisionDate": "2025-06-15"
-  },
-  {
-    "HomeName": "Nheu",
-    "AnnualRevisionDate": "2025-03-20"
-  },
-  {
-    "HomeName": "Naut",
-    "AnnualRevisionDate": "2025-08-10"
-  },
-  {
-    "HomeName": "Pinere",
-    "AnnualRevisionDate": "2025-07-05"
-  },
-  {
-    "HomeName": "1500",
-    "AnnualRevisionDate": "2025-05-12"
-  },
-  {
-    "HomeName": "Ruda",
-    "AnnualRevisionDate": "2025-04-18"
-  },
-  {
-    "HomeName": "Nin",
-    "AnnualRevisionDate": "2025-09-25"
-  },
-  {
-    "HomeName": "Arties",
-    "AnnualRevisionDate": "2025-02-14"
-  },
-  {
-    "HomeName": "Garona",
-    "AnnualRevisionDate": "2025-10-08"
-  },
-  {
-    "HomeName": "Tanau",
-    "AnnualRevisionDate": "2025-11-20"
-  },
-  {
-    "HomeName": "Oyambre",
-    "AnnualRevisionDate": "2025-05-30"
-  },
-  {
-    "HomeName": "Deveses",
-    "AnnualRevisionDate": "2025-07-22"
-  },
-  {
-    "HomeName": "Tosalet",
-    "AnnualRevisionDate": "2025-08-30"
-  },
-  {
-    "HomeName": "Gades",
-    "AnnualRevisionDate": "2025-06-10"
-  },
-  {
-    "HomeName": "Sidonia",
-    "AnnualRevisionDate": "2025-09-15"
-  },
-  {
-    "HomeName": "Nara",
-    "AnnualRevisionDate": "2025-04-05"
-  },
-  {
-    "HomeName": "Tuna",
-    "AnnualRevisionDate": "2025-03-12"
-  },
-  {
-    "HomeName": "Valderrama",
-    "AnnualRevisionDate": "2025-07-18"
-  },
-  {
-    "HomeName": "Saona",
-    "AnnualRevisionDate": "2025-05-25"
-  },
-  {
-    "HomeName": "Ribes",
-    "AnnualRevisionDate": "2025-08-05"
-  },
-  {
-    "HomeName": "Coves",
-    "AnnualRevisionDate": "2025-06-28"
-  },
-  {
-    "HomeName": "Bini",
-    "AnnualRevisionDate": "2025-09-10"
-  },
-  {
-    "HomeName": "Son_Parc_",
-    "AnnualRevisionDate": "2025-04-22"
-  },
-  {
-    "HomeName": "Son_Parc_II",
-    "AnnualRevisionDate": "2025-10-15"
-  }
+  {"HomeName": "Fir", "AnnualRevisionDate": "2025-09-08"},
+  {"HomeName": "Nheu", "AnnualRevisionDate": "2025-09-08"},
+  {"HomeName": "Naut", "AnnualRevisionDate": "2025-09-09"},
+  {"HomeName": "Pinere", "AnnualRevisionDate": "2025-09-08"},
+  {"HomeName": "1500", "AnnualRevisionDate": "2025-09-08"},
+  {"HomeName": "Ruda", "AnnualRevisionDate": "2025-09-08"},
+  {"HomeName": "Nin", "AnnualRevisionDate": "2025-08-21"},
+  {"HomeName": "Arties", "AnnualRevisionDate": "2025-09-09"},
+  {"HomeName": "Garona", "AnnualRevisionDate": "2025-08-25"},
+  {"HomeName": "Tanau", "AnnualRevisionDate": "2025-05-05"},
+  {"HomeName": "Oyambre", "AnnualRevisionDate": "2025-05-14"},
+  {"HomeName": "Deveses", "AnnualRevisionDate": "2025-05-21"},
+  {"HomeName": "Tosalet", "AnnualRevisionDate": "2025-09-22"},
+  {"HomeName": "Gades", "AnnualRevisionDate": "2025-09-22"},
+  {"HomeName": "Sidonia", "AnnualRevisionDate": "2025-09-22"},
+  {"HomeName": "Nara", "AnnualRevisionDate": "2025-09-22"},
+  {"HomeName": "Tuna", "AnnualRevisionDate": "2025-09-01"},
+  {"HomeName": "Valderrama", "AnnualRevisionDate": "2025-09-08"},
+  {"HomeName": "Saona", "AnnualRevisionDate": "2025-06-09"},
+  {"HomeName": "Ribes", "AnnualRevisionDate": "2025-06-09"},
+  {"HomeName": "Coves", "AnnualRevisionDate": "2025-07-14"},
+  {"HomeName": "Bini", "AnnualRevisionDate": "2025-08-18"},
+  {"HomeName": "Son_Parc_", "AnnualRevisionDate": "2025-07-14"},
+  {"HomeName": "Son_Parc_II", "AnnualRevisionDate": "2025-07-14"}
 ];
 
 /**
