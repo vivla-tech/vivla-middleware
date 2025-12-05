@@ -460,16 +460,47 @@ export async function getZendeskUserById(userId) {
     }
 }
 
+// Constante para el custom_status_id de propuesta de mejora (tickets que deben excluirse)
+const FORBIDDEN_CUSTOM_STATUS_ID = 18587461153436;
+const HOME_FIELD_ID = 17925940459804;
+
 // Obtener tickets solicitados por un usuario específico
-export async function getZendeskUserRequestedTickets(userId, page = 1, per_page = 25) {
+// NOTA: Usa la API de búsqueda con filtro negativo para excluir tickets de propuesta de mejora
+// directamente en la query, garantizando paginación correcta.
+// Para revertir al endpoint original, cambiar USE_SEARCH_API a false y usar el endpoint comentado abajo.
+export async function getZendeskUserRequestedTickets(userId, page = 1, per_page = 25, homeName = null) {
     try {
-        const params = new URLSearchParams({
-            page: page.toString(),
-            per_page: per_page.toString()
-        });
+        const USE_SEARCH_API = true; // Cambiar a false para usar el endpoint original
         
-        const endpoint = `/users/${userId}/tickets/requested.json?${params.toString()}`;
-        return fetchZendeskData(endpoint);
+        if (USE_SEARCH_API) {
+            // Usar API de búsqueda con filtro negativo para excluir propuestas de mejora
+            // La API de búsqueda devuelve 'results' en lugar de 'tickets'
+            const queryParts = [
+                `requester_id:${userId}`,
+                `-custom_status_id:${FORBIDDEN_CUSTOM_STATUS_ID}`
+            ];
+            
+            // Añadir filtro de casa si se proporciona
+            if (homeName) {
+                queryParts.push(`custom_field_${HOME_FIELD_ID}:${encodeURIComponent(homeName)}`);
+            }
+            
+            const query = queryParts.join(' ');
+            const encodedQuery = encodeURIComponent(query);
+            const endpoint = `/search.json?query=${encodedQuery}&page=${page}&per_page=${per_page}&sort_by=created_at&sort_order=desc&include=users`;
+            
+            console.log(`Buscando tickets del usuario ${userId}${homeName ? ` para casa ${homeName}` : ''} (excluyendo propuestas de mejora): ${query}`);
+            return fetchZendeskData(endpoint);
+        } else {
+            // Endpoint original (sin filtro en la query)
+            // Para usar este endpoint, cambiar USE_SEARCH_API a false arriba
+            const params = new URLSearchParams({
+                page: page.toString(),
+                per_page: per_page.toString()
+            });
+            const endpoint = `/users/${userId}/tickets/requested.json?${params.toString()}`;
+            return fetchZendeskData(endpoint);
+        }
     } catch (error) {
         console.error(`Error al obtener tickets solicitados por el usuario ${userId}:`, error);
         throw error;
