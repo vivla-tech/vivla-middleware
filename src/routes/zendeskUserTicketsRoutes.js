@@ -34,6 +34,13 @@ const router = express.Router();
  *           minimum: 1
  *           maximum: 100
  *         description: Número de elementos por página (máximo 100)
+ *       - in: query
+ *         name: home
+ *         required: false
+ *         schema:
+ *           type: string
+ *         description: Nombre de la casa para filtrar los tickets (opcional)
+ *         example: "saona"
  *     responses:
  *       200:
  *         description: Lista de tickets obtenida exitosamente
@@ -100,6 +107,11 @@ const router = express.Router();
  *                     user_id:
  *                       type: integer
  *                       description: ID del usuario consultado
+ *                     home:
+ *                       type: string
+ *                       nullable: true
+ *                       description: Nombre de la casa filtrada (null si no se aplicó filtro)
+ *                       example: "saona"
  *       400:
  *         description: Error de validación en los parámetros
  *         content:

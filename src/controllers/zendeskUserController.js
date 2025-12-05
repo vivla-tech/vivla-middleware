@@ -79,10 +79,10 @@ export async function getZendeskUserTicketsController(req, res) {
         }
         
         // Obtener parámetros de query con valores por defecto
-        const { page = 1, per_page = 25 } = req.query;
+        const { page = 1, per_page = 25, home } = req.query;
         
         // Llamar al servicio
-        const result = await getZendeskUserRequestedTicketsService(userId, page, per_page);
+        const result = await getZendeskUserRequestedTicketsService(userId, page, per_page, home);
         
         // Si hay error, devolver el código de estado apropiado
         if (result.status === 'error') {
@@ -100,20 +100,23 @@ export async function getZendeskUserTicketsController(req, res) {
             return res.status(500).json(result);
         }
         
-        // Construir URLs completas para la paginación si existen
+        // Construir URLs completas para la paginación (incluyendo filtros si existen)
         const protocol = req.protocol;
         const host = req.get('host');
+        
+        // Construir parámetros de query para paginación
+        const homeParam = home ? `&home=${encodeURIComponent(home)}` : '';
         
         if (result.data.next_page) {
             // Construir URL de siguiente página
             const nextPageNum = parseInt(page, 10) + 1;
-            result.data.next_page = `${protocol}://${host}/v1/zendesk-user-tickets/${userId}?page=${nextPageNum}&per_page=${per_page}`;
+            result.data.next_page = `${protocol}://${host}/v1/zendesk-user-tickets/${userId}?page=${nextPageNum}&per_page=${per_page}${homeParam}`;
         }
         
         if (result.data.previous_page) {
             // Construir URL de página anterior
             const prevPageNum = parseInt(page, 10) - 1;
-            result.data.previous_page = `${protocol}://${host}/v1/zendesk-user-tickets/${userId}?page=${prevPageNum}&per_page=${per_page}`;
+            result.data.previous_page = `${protocol}://${host}/v1/zendesk-user-tickets/${userId}?page=${prevPageNum}&per_page=${per_page}${homeParam}`;
         }
         
         // Éxito, devolver 200

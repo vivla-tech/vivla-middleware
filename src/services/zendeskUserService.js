@@ -1,6 +1,9 @@
 import { getZendeskUsers, getZendeskUserById, getZendeskUserRequestedTickets } from '../api/zendeskApi.js';
 import { homeStatsHelpers } from '../helpers/homeStatsHelpers.js';
 import { getTickets } from './ticketService.js';
+// NOTA: shouldDiscardTicket ya no se usa aquí porque el filtro se aplica en la query de Zendesk
+// Si se revierte a USE_SEARCH_API = false, descomentar:
+// import { shouldDiscardTicket } from './ticketService.js';
 
 /**
  * Obtiene la lista de usuarios de Zendesk
@@ -195,9 +198,10 @@ export async function getZendeskUserByIdService(userId) {
  * @param {number|string} userId - ID del usuario en Zendesk
  * @param {number} page - Número de página (default: 1)
  * @param {number} per_page - Elementos por página (default: 25)
+ * @param {string} homeName - Nombre de la casa para filtrar (opcional)
  * @returns {Promise<Object>} Objeto con status, message y data
  */
-export async function getZendeskUserRequestedTicketsService(userId, page = 1, per_page = 25) {
+export async function getZendeskUserRequestedTicketsService(userId, page = 1, per_page = 25, homeName = null) {
     try {
         // Validar userId
         const userIdNum = parseInt(userId, 10);
@@ -229,15 +233,28 @@ export async function getZendeskUserRequestedTicketsService(userId, page = 1, pe
             };
         }
         
-        console.log(`Obteniendo tickets solicitados por usuario ${userIdNum} - Página: ${pageNum}, Por página: ${perPageNum}`);
+        console.log(`Obteniendo tickets solicitados por usuario ${userIdNum} - Página: ${pageNum}, Por página: ${perPageNum}${homeName ? `, Casa: ${homeName}` : ''}`);
         
         // Llamar a la API de Zendesk
-        const response = await getZendeskUserRequestedTickets(userIdNum, pageNum, perPageNum);
+        // NOTA: La API de búsqueda devuelve 'results' en lugar de 'tickets'
+        // El filtro de propuestas de mejora ya se aplica en la query de Zendesk
+        const response = await getZendeskUserRequestedTickets(userIdNum, pageNum, perPageNum, homeName);
         
         // Obtener todos los tickets de la respuesta
-        const tickets = response.tickets || [];
+        // La API de búsqueda devuelve 'results', la API estándar devuelve 'tickets'
+        const tickets = response.results || response.tickets || [];
         
-        // Precargar todos los datos necesarios en paralelo (igual que en ticketService)
+        // NOTA: Ya no es necesario filtrar localmente porque el filtro se aplica en la query de Zendesk
+        // Si se revierte a USE_SEARCH_API = false en zendeskApi.js, descomentar las siguientes líneas:
+        // const allTickets = response.tickets || [];
+        // const tickets = allTickets.filter(ticket => !shouldDiscardTicket(ticket));
+        // const discardedCount = allTickets.length - tickets.length;
+        // if (discardedCount > 0) {
+        //     console.log(`📊 ${discardedCount} ticket(s) descartado(s) por custom_status prohibido`);
+        // }
+        // Y cambiar: count: response.count || 0, por: count: (response.count || 0) - discardedCount,
+        
+        // Precargar todos los datos necesarios en paralelo
         await Promise.all([
             homeStatsHelpers.loadUserNames(tickets),
             homeStatsHelpers.loadGroupNames(tickets),
@@ -247,22 +264,23 @@ export async function getZendeskUserRequestedTicketsService(userId, page = 1, pe
         // Formatear todos los tickets con el mismo formato que /v1/tickets
         const formattedTickets = tickets.map(ticket =>
             homeStatsHelpers.formatTicket(ticket)
-            //ticket
         );
         
         // La respuesta de Zendesk tiene la estructura:
-        // { tickets: [...], count: number, next_page: url, previous_page: url }
+        // API de búsqueda: { results: [...], count: number, next_page: url, previous_page: url }
+        // API estándar: { tickets: [...], count: number, next_page: url, previous_page: url }
         return {
             status: 'success',
             message: 'Tickets obtenidos exitosamente',
             data: {
                 tickets: formattedTickets,
-                count: response.count || 0,
+                count: response.count || 0, // Count ya está correcto porque el filtro se aplica en Zendesk
                 next_page: response.next_page || null,
                 previous_page: response.previous_page || null,
                 page: pageNum,
                 per_page: perPageNum,
-                user_id: userIdNum
+                user_id: userIdNum,
+                home: homeName || null // Incluir home en la respuesta (null si no se proporcionó)
             }
         };
     } catch (error) {
