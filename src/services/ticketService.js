@@ -16,7 +16,7 @@ function debugLog(message) {
  * @param {Object} ticket - Datos del ticket
  * @returns {boolean} true si el ticket debe ser descartado, false si debe procesarse
  */
-function shouldDiscardTicket(ticket) {
+export function shouldDiscardTicket(ticket) {
     // Validar entrada
     if (!ticket || typeof ticket !== 'object') {
         debugLog('⚠️ Ticket inválido recibido en shouldDiscardTicket');
