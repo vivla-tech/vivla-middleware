@@ -15,33 +15,28 @@ const CHECKPOINTS_DATA = [
   },
   {
     "HomeName": "Nheu",
-    "OwnersCheckPointCount": 3,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
-      "2025-01-29",
       "2025-02-10",
       "2025-01-21"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-02-17",
-      "2025-08-21",
       "2025-09-08"
     ]
   },
   {
     "HomeName": "Naut",
-    "OwnersCheckPointCount": 3,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
-      "2025-01-29",
       "2025-02-10",
       "2025-01-21"
     ],
-    "HXCheckPointCount": 4,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-02-18",
-      "2025-08-11",
-      "2025-08-26",
-      "2025-09-09"
+      "2025-08-26"
     ]
   },
   {
@@ -51,41 +46,35 @@ const CHECKPOINTS_DATA = [
       "2025-06-25",
       "2025-08-12"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-06-26",
-      "2025-08-25",
       "2025-09-08"
     ]
   },
   {
     "HomeName": "1500",
-    "OwnersCheckPointCount": 4,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
       "2025-01-29",
-      "2025-02-10",
-      "2025-01-21",
       "2025-06-25"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-06-26",
-      "2025-08-26",
       "2025-09-08"
     ]
   },
   {
     "HomeName": "Ruda",
-    "OwnersCheckPointCount": 3,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
-      "2025-01-29",
       "2025-02-10",
       "2025-01-21"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-02-18",
-      "2025-08-26",
       "2025-09-08"
     ]
   },
@@ -143,20 +132,23 @@ const CHECKPOINTS_DATA = [
   },
   {
     "HomeName": "Oyambre",
-    "OwnersCheckPointCount": 1,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
-      "2025-05-14"
+      "2025-05-14",
+      "2025-08-12"
     ],
-    "HXCheckPointCount": 1,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
-      "2025-05-05"
+      "2025-05-05",
+      "2025-08-25"
     ]
   },
   {
     "HomeName": "Deveses",
-    "OwnersCheckPointCount": 1,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
-      "2025-06-23"
+      "2025-06-23",
+      "2025-08-12"
     ],
     "HXCheckPointCount": 2,
     "HXCheckPointDates": [
@@ -179,14 +171,14 @@ const CHECKPOINTS_DATA = [
   },
   {
     "HomeName": "Gades",
-    "OwnersCheckPointCount": 1,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
-      "2025-09-15"
+      "2025-09-15",
+      "2025-07-21"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-04-28",
-      "2025-07-21",
       "2025-09-22"
     ]
   },
@@ -197,10 +189,9 @@ const CHECKPOINTS_DATA = [
       "2025-08-11",
       "2025-09-15"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-07-24",
-      "2025-09-01",
       "2025-09-22"
     ]
   },
@@ -237,20 +228,20 @@ const CHECKPOINTS_DATA = [
       "2025-07-07",
       "2025-09-08"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-04-01",
       "2025-07-07",
-      "2025-09-08"
     ]
   },
   {
     "HomeName": "Saona",
-    "OwnersCheckPointCount": 1,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
+      "2025-07-07",
       "2025-02-24"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-03-03",
       "2025-06-09"
@@ -263,10 +254,9 @@ const CHECKPOINTS_DATA = [
       "2025-02-24",
       "2025-09-15"
     ],
-    "HXCheckPointCount": 3,
+    "HXCheckPointCount": 2,
     "HXCheckPointDates": [
       "2025-01-23",
-      "2025-03-03",
       "2025-06-09"
     ]
   },
@@ -285,10 +275,9 @@ const CHECKPOINTS_DATA = [
   },
   {
     "HomeName": "Bini",
-    "OwnersCheckPointCount": 3,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
       "2025-03-25",
-      "2025-04-21",
       "2025-06-21"
     ],
     "HXCheckPointCount": 2,
@@ -299,11 +288,10 @@ const CHECKPOINTS_DATA = [
   },
   {
     "HomeName": "Son_Parc_",
-    "OwnersCheckPointCount": 3,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
       "2025-03-25",
-      "2025-04-21",
-      "2025-04-28"
+      "2025-04-21"
     ],
     "HXCheckPointCount": 2,
     "HXCheckPointDates": [
@@ -313,11 +301,9 @@ const CHECKPOINTS_DATA = [
   },
   {
     "HomeName": "Son_Parc_II",
-    "OwnersCheckPointCount": 4,
+    "OwnersCheckPointCount": 2,
     "OwnersCheckPointDates": [
       "2025-03-25",
-      "2025-04-21",
-      "2025-04-28",
       "2025-07-21"
     ],
     "HXCheckPointCount": 2,
