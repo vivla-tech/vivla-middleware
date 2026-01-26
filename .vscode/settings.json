@@ -1,0 +1,7 @@
+{
+    "debug.javascript.usePreview": false,
+    "debug.allowBreakpointsEverywhere": true,
+    "debug.javascript.autoAttachFilter": "disabled",
+    "debug.javascript.unmapMissingSources": true,
+    "debug.javascript.breakOnConditionalError": true
+}

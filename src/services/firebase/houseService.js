@@ -20,7 +20,7 @@ export async function getHouseIdByName(houseName) {
         }
 
         // Convertimos el nombre de búsqueda a minúsculas
-        const normalizedSearchName = houseName.toLowerCase();
+        const normalizedSearchName = houseName.toLowerCase().replace(/^casa\s+/, '');
 
         // Buscamos el ID por el nombre (ignorando 'casa' al inicio)
         const matchingHouse = Object.entries(houseNameToIdCache).find(([cachedName]) => {

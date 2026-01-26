@@ -90,8 +90,7 @@ const router = express.Router();
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: El parámetro hid es requerido
- *                   example: El parámetro from debe tener el formato YYYY-MM-DD (ejemplo: 2024-11-30)
+ *                   example: El parámetro hid es requerido o el parámetro from debe tener el formato YYYY-MM-DD (ejemplo: 2024-11-30)
  *       404:
  *         description: Casa no encontrada
  *         content:
