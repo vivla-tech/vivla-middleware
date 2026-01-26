@@ -88,7 +88,7 @@ const router = express.Router();
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No se encontró un usuario con el email: usuario@ejemplo.com
+ *                   example: "No se encontró un usuario con el email: usuario@ejemplo.com"
  *       500:
  *         description: Error interno del servidor
  *         content:
