@@ -31,11 +31,11 @@ const router = express.Router();
  *           example: "home_12345"
  *         files:
  *           type: array
+ *           description: Archivos adjuntos (máximo 5)
+ *           maxItems: 5
  *           items:
  *             type: string
  *             format: binary
- *           description: Archivos adjuntos (máximo 5)
- *           maxItems: 5
  *     
  *     ProposalResponse:
  *       type: object
@@ -105,11 +105,11 @@ const router = express.Router();
  *                 example: "home_12345"
  *               files:
  *                 type: array
+ *                 description: Archivos adjuntos (máximo 5, tipos: jpg, png, pdf, doc, docx)
+ *                 maxItems: 5
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Archivos adjuntos (máximo 5, tipos: jpg, png, pdf, doc, docx)
- *                 maxItems: 5
  *     responses:
  *       201:
  *         description: Propuesta creada exitosamente

@@ -236,7 +236,7 @@ router.get('/', getZendeskUsersController);
  *                   example: error
  *                 message:
  *                   type: string
- *                   example: No se encontró el usuario con ID: 123456
+ *                   example: "No se encontró el usuario con ID: 123456"
  *                 data:
  *                   type: null
  *       401:
