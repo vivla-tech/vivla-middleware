@@ -3,6 +3,16 @@
  */
 
 /**
+ * Elimina tildes y diacríticos del español (á→a, é→e, ñ→n, etc.)
+ * @param {string} str - String a normalizar
+ * @returns {string}
+ */
+function removeAccents(str) {
+    if (typeof str !== 'string') return str;
+    return str.normalize('NFD').replace(/\p{M}/gu, '');
+}
+
+/**
  * Encuentra el string más similar de una lista comparando si uno contiene al otro
  * @param {string} target - String objetivo a comparar
  * @param {string[]} candidates - Lista de strings candidatos
@@ -13,8 +23,8 @@ export function findMostSimilarString(target, candidates) {
         return null;
     }
 
-    // Normalizar el string objetivo (minúsculas y sin espacios extra)
-    const normalizedTarget = target.toLowerCase().trim();
+    // Normalizar el string objetivo (minúsculas, sin tildes y sin espacios extra)
+    const normalizedTarget = removeAccents(target.toLowerCase().trim());
     
     // Si el target está vacío después de normalizar, retornar null
     if (!normalizedTarget) {
@@ -27,7 +37,7 @@ export function findMostSimilarString(target, candidates) {
     for (const candidate of candidates) {
         if (!candidate) continue;
 
-        const normalizedCandidate = candidate.toLowerCase().trim();
+        const normalizedCandidate = removeAccents(candidate.toLowerCase().trim());
         
         // Calcular score de similitud
         const score = calculateSimilarityScore(normalizedTarget, normalizedCandidate);
@@ -149,7 +159,7 @@ export function findMostSimilarStringIgnoringCommonWords(target, candidates) {
  * @returns {string} - String normalizado
  */
 function normalizeString(str, wordsToRemove = []) {
-    let normalized = str.toLowerCase().trim();
+    let normalized = removeAccents(str.toLowerCase().trim());
     
     // Remover palabras comunes
     for (const word of wordsToRemove) {
